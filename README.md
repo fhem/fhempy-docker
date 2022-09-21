@@ -22,4 +22,4 @@ Example is assuming, that your fhem newtwork is named net and already defined li
 
 To start your container right away:
     
-    docker run -d --name fhempy` docker pull ghcr.io/fhem/fhempy-docker:main
+    docker run -d --name fhempy ghcr.io/fhem/fhempy-docker:main
