@@ -9,7 +9,7 @@ def test_url(url, data=""):
             await websocket.send(data)
     return asyncio.get_event_loop().run_until_complete(inner())
 
-waitingForId = int(random()*100000000)
+waitingForId = int(random.random()*100000000)
 
 testdata = { 
    "id": waitingForId ,
