@@ -37,6 +37,20 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
+      - name: Read requiremebts.txt
+        id: packages
+        uses: juliangruber/read-file-action@v1
+        with:
+          path: ./requirements.txt
+      - uses: rishabhgupta/split-by@v1
+        id: split
+        with:
+          string: ${{ steps.package.outputs.content }}
+    split-by: '='
+
+  - name: Echo package.json
+    run: echo ""
+
       # Install the cosign tool except on PR
       # https://github.com/sigstore/cosign-installer
       - name: Install cosign
@@ -83,6 +97,7 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          build-args: FHEMPY_V=${{ steps.split.outputs._1}}
 
       # Sign the resulting Docker image digest except on PRs.
       # This will only write to the public Rekor transparency log when the Docker
