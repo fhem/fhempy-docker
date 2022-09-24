@@ -42,14 +42,12 @@ jobs:
         uses: juliangruber/read-file-action@v1
         with:
           path: ./requirements.txt
-      - uses: rishabhgupta/split-by@v1
+      - name: Split Version
+        uses: rishabhgupta/split-by@v1
         id: split
         with:
           string: ${{ steps.package.outputs.content }}
-    split-by: '='
-
-  - name: Echo package.json
-    run: echo ""
+          split-by: '='
 
       # Install the cosign tool except on PR
       # https://github.com/sigstore/cosign-installer
