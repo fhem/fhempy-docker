@@ -14,9 +14,6 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
-    # Only allow updates to the lockfile for pip and
-    # ignore any version updates that affect the manifest
-    versioning-strategy: lockfile-only
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
