@@ -52,7 +52,7 @@ jobs:
         id: image_versions
         uses: nguyenvanuyn96/str-find-action@0.0.2
         with:
-          find: "^FROM\s(.*)$"
+          find: ^FROM\s(.*)$
           include: "Dockerfile"
       - name: Split docker FROM image
         uses: rishabhgupta/split-by@v1.0.1
