@@ -46,7 +46,7 @@ jobs:
         uses: rishabhgupta/split-by@v1
         id: split
         with:
-          string: ${{ steps.package.outputs.content }}
+          string: ${{ steps.packages.outputs.content }}
           split-by: '=='
 
       # Install the cosign tool except on PR
