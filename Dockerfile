@@ -7,7 +7,7 @@ RUN apt update && \
     && rm -rf /var/lib/apt/lists/*
 
 ARG FHEMPY_V=unset
-ADD ./requirements.txt requirements.txt
+COPY ./requirements.txt requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
 CMD [ "fhempy" ]
