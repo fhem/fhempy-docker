@@ -40,12 +40,12 @@ jobs:
       - name: Split fhempy Version
         id: split_fhempyV
         run: |
-          ::set-output name=result::$(grep '^fhempy' requirements.txt | cut -d '=' -f3)
+          echo "::set-output name=result::$(grep '^fhempy' requirements.txt | cut -d '=' -f3)"
       - name: Find String
         id: extract_image
         run: |
-           ::set-output name=image_name::$(grep '^FROM' Dockerfile | cut -d ' ' -f2 | cut -d ':' -f1)
-           ::set-output name=image_version::$(grep '^FROM' Dockerfile | cut -d ' ' -f2 | cut -d ':' -f2)
+           echo "::set-output name=image_name::$(grep '^FROM' Dockerfile | cut -d ' ' -f2 | cut -d ':' -f1)"
+           echo "::set-output name=image_version::$(grep '^FROM' Dockerfile | cut -d ' ' -f2 | cut -d ':' -f2)"
       - name: Update docs
         run: |
             sed -e "s/{FHEMPY_VERSION}/${{ steps.split_fhempyV.outputs.result}}/" -e "s/{PYTHON_VERSION}/${{ steps.extract_image.outputs.image_version}}/" -e "s/{DEBIAN_RELEASE}/buster/" < README.tmpl > README.md
