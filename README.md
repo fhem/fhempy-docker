@@ -5,7 +5,7 @@ Docker Container with [fhempy](https://github.com/fhempy/fhempy) which can be co
 
 * Debian 11 buster
 * Python 3.9.14
-* fhempy 3.9.14
+* fhempy 0.1.473
 
 
 
