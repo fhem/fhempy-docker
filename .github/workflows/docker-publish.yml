@@ -37,33 +37,18 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Read requirements.txt
-        id: package_fhempy
-        uses: juliangruber/read-file-action@v1.1.4
-        with:
-          path: ./requirements.txt
       - name: Split fhempy Version
-        uses: rishabhgupta/split-by@v1.0.1
         id: split_fhempyV
-        with:
-          string: ${{ steps.package_fhempy.outputs.content }}
-          split-by: '=='
+        run: |
+          ::set-output name=result::$(grep '^fhempy' requirements.txt | cut -d '=' -f3)
       - name: Find String
-        id: image_versions
-        uses: nguyenvanuyn96/str-find-action@0.0.2
-        with:
-          find: '^FROM.(.*)$'
-          include: "Dockerfile"
-      - name: Split docker FROM image
-        uses: rishabhgupta/split-by@v1.0.1
-        id: split_imageV
-        with:
-          string: ${{ steps.image_versions.outputs.resultArray }}
-          split-by: ':'
-
+        id: extract_image
+        run: |
+           ::set-output name=image_name::$(grep '^FROM' Dockerfile | cut -d ' ' -f2 | cut -d ':' -f1)
+           ::set-output name=image_version::$(grep '^FROM' Dockerfile | cut -d ' ' -f2 | cut -d ':' -f2)
       - name: Update docs
         run: |
-            sed -e "s/{FHEMPY_VERSION}/${{ steps.split_fhempyV.outputs._1}}/" -e "s/{PYTHON_VERSION}/${{ steps.split_imageV.outputs._1}}/" -e "s/{DEBIAN_RELEASE}/buster/" < README.tmpl > README.md
+            sed -e "s/{FHEMPY_VERSION}/${{ steps.split_fhempyV.outputs.result}}/" -e "s/{PYTHON_VERSION}/${{ steps.extract_image.outputs.image_version}}/" -e "s/{DEBIAN_RELEASE}/buster/" < README.tmpl > README.md
       - uses: stefanzweifel/git-auto-commit-action@v4.15.0
         with:
           file_pattern: 'README.MD'
@@ -114,7 +99,7 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          build-args: FHEMPY_V=${{ steps.split_fhempyV.outputs._1}}
+          build-args: FHEMPY_V=${{ steps.split_fhempyV.outputs.result}}
 
       # Sign the resulting Docker image digest except on PRs.
       # This will only write to the public Rekor transparency log when the Docker
