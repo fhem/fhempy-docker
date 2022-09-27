@@ -1,5 +1,5 @@
 FROM python:3.9.14
-
+ARG CLEAN=unset
 WORKDIR /usr/src/app
 COPY src/health-check.sh /health-check.sh
 
