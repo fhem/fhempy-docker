@@ -12,7 +12,8 @@ RETURNCODE=0
 
 for ID in $IMAGE; do
   echo "Booting up container for variant $ID ..."
-  CONTAINER=$( docker run -d -ti --health-interval=60s --health-timeout=10s --health-start-period=150s --health-retries=5 "$ID" )
+  #CONTAINER=$( docker run -d -ti --health-interval=60s --health-timeout=10s --health-start-period=150s --health-retries=5 "$ID" )
+  CONTAINER=$( docker run -d -ti "$ID" )
   docker container ls | grep 'fhem/.*'
 
   echo -ne "Waiting for container ..."
@@ -37,6 +38,7 @@ for ID in $IMAGE; do
     until [ "$healthstate" != "starting" ]; do
       healthstate=$( docker inspect --format="{{json .State}}" "$CONTAINER" 2>/dev/null | jq -r .Health.Status )
       echo -n " ."
+      echo $healthstate
       sleep 3
     done
     if [ -n "$healthstate" ] && [ "$healthstate" == "healthy" ]; then
@@ -52,13 +54,13 @@ for ID in $IMAGE; do
   if [ "$status" != "OK" ]; then
     echo -e "\nImage $ID did come up with unexpected state $status. Integration test FAILED!\n\n"
     docker logs "$CONTAINER"
-    docker container rm "$CONTAINER" --force --volumes /dev/null 2>&1 
+    docker container rm --force --volumes  "$CONTAINER" 2>&1>/dev/null
     docker rmi "$ID" >/dev/null
     echo "$ID $status" >> ./failed_variants
     (( RETURNCODE++ ))
   else
     echo -e "\nImage $ID integration test PASSED.\n\n"
-    docker container rm "$CONTAINER" --force --volumes /dev/null 2>&1 
+    docker container rm --force --volumes "$CONTAINER"  2>&1>/dev/null
   fi
 done
 
