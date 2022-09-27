@@ -2,13 +2,14 @@
 
 STATE=0
 WEBPORT=15733
+PROTO=HTTP
 FHEMPY_STATE=$( curl \
                   --silent \
                   --insecure \
                   --output /dev/null \
                   --write-out "%{http_code}" \
                   --user-agent 'fhempy-docker/1.0 Health Check' \
-                  "${PROTO}://{$HOSTNAME}:${WEBPORT}/healtcheck" )
+                  "${PROTO}://{$HOSTNAME}:${WEBPORT}/healthcheck" )
 if [ $? -ne 0 ] ||
    [ -z "${FHEMPY_STATE}" ] ||
    [ "${FHEMPY_STATE}" == "000" ] ||
