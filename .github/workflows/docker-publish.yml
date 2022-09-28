@@ -97,7 +97,7 @@ jobs:
           load: false
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
+          #cache-from: type=gha
           cache-to: type=gha,mode=max
           build-args: FHEMPY_V=${{ steps.split_fhempyV.outputs.result}}
 
