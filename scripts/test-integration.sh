@@ -14,7 +14,7 @@ for ID in $IMAGE; do
   echo "Booting up container for variant $ID ..."
   #CONTAINER=$( docker run -d -ti --health-interval=60s --health-timeout=10s --health-start-period=150s --health-retries=5 "$ID" )
   CONTAINER=$( docker run -d -ti "$ID" )
-  docker container ls | grep 'fhem/.*'
+  docker container ls  | grep 'fhempy'
 
   echo -ne "Waiting for container ..."
   sleep 3
