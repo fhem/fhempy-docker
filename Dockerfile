@@ -1,6 +1,7 @@
 FROM python:3.9.14
 WORKDIR /usr/src/app
 COPY src/health-check.sh /health-check.sh
+RUN chmod +x /health-check.sh
 
 RUN apt update && \
     apt install dbus python-dbus-dev rustc build-essential libssl-dev libffi-dev python3-dev cargo -y --no-install-recommends \
