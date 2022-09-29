@@ -47,6 +47,7 @@ jobs:
            echo "::set-output name=image_name::$(grep '^FROM' Dockerfile | cut -d ' ' -f2 | cut -d ':' -f1)"
            echo "::set-output name=image_version::$(grep '^FROM' Dockerfile | cut -d ' ' -f2 | cut -d ':' -f2)"
       - name: Update docs
+        if: ${{ github.event_name != 'pull_request' }}
         run: |
             sed -e "s/{FHEMPY_VERSION}/${{ steps.split_fhempyV.outputs.result}}/" -e "s/{PYTHON_VERSION}/${{ steps.extract_image.outputs.image_version}}/" -e "s/{DEBIAN_RELEASE}/buster/" < README.tmpl > README.md
       - uses: stefanzweifel/git-auto-commit-action@v4.15.0
@@ -86,6 +87,24 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
 
+      - name: Build for integration test amd64 
+        uses: docker/build-push-action@v3.1.1
+        id: docker_build
+        with:
+          context: .
+          platforms: linux/amd64
+          push: false
+          load: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: FHEMPY_V=${{ steps.split_fhempyV.outputs.result}}
+
+      - name: Run integration tests
+        run: |
+          ./scripts/test-integration.sh ${{ fromJSON(steps.meta.outputs.json).tags[0] }}
+
       # Build and push Docker image with Buildx (don't push on PR)
       # https://github.com/docker/build-push-action
       - name: Build and push Docker image
@@ -100,6 +119,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           build-args: FHEMPY_V=${{ steps.split_fhempyV.outputs.result}}
+
 
       # Sign the resulting Docker image digest except on PRs.
       # This will only write to the public Rekor transparency log when the Docker
