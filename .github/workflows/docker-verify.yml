@@ -45,10 +45,10 @@ jobs:
       # Extract metadata (tags, labels) for Docker
       # https://github.com/docker/metadata-action
       - name: Extract Docker metadata
-        id: meta
+        id: meta-base
         uses: docker/metadata-action@v4.0.1
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-base
 
       - name: Build base image
         uses: docker/build-push-action@v3.1.1
@@ -58,15 +58,18 @@ jobs:
           platforms: linux/amd64
           push: false
           load: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: ${{ steps.meta-base.outputs.tags }}
+          labels: ${{ steps.meta-base.outputs.labels }}
           cache-to: type=gha,mode=max
           cache-from: type=gha
           build-args: FHEMPY_V=${{ steps.split_fhempyV.outputs.result}}
           target: base
-          images: |
-            ${{ env.REGISTRY }}/${{ github.repository }}-base
             
+      - name: Extract Docker metadata
+        id: meta-runtime
+        uses: docker/metadata-action@v4.0.1
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-base
 
       - name: Build for integration test amd64 
         uses: docker/build-push-action@v3.1.1
@@ -76,11 +79,11 @@ jobs:
           platforms: linux/amd64
           push: false
           load: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: ${{ steps.meta-runtime.outputs.tags }}
+          labels: ${{ steps.meta-runtime.outputs.labels }}
           cache-from: type=gha
           build-args: FHEMPY_V=${{ steps.split_fhempyV.outputs.result}}
           target: runtime
       - name: Run integration tests
         run: |
-          ./scripts/test-integration.sh ${{ fromJSON(steps.meta.outputs.json).tags[0] }}
+          ./scripts/test-integration.sh ${{ fromJSON(steps.meta-runtime.outputs.json).tags[0] }}
