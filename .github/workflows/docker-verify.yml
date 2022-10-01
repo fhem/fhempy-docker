@@ -41,6 +41,7 @@ jobs:
       - name: Setup Docker buildx
         uses: docker/setup-buildx-action@v2
 
+
       # Extract metadata (tags, labels) for Docker
       # https://github.com/docker/metadata-action
       - name: Extract Docker metadata
@@ -48,6 +49,24 @@ jobs:
         uses: docker/metadata-action@v4.0.1
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+
+      - name: Build base image
+        uses: docker/build-push-action@v3.1.1
+        id: docker_build
+        with:
+          context: .
+          platforms: linux/amd64
+          push: false
+          load: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-to: type=gha,mode=max
+          cache-from: type=gha
+          build-args: FHEMPY_V=${{ steps.split_fhempyV.outputs.result}}
+          target: base
+          images: |
+            ${{ env.REGISTRY }}/${{ github.repository }}-base
+            
 
       - name: Build for integration test amd64 
         uses: docker/build-push-action@v3.1.1
@@ -61,7 +80,7 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           build-args: FHEMPY_V=${{ steps.split_fhempyV.outputs.result}}
-
+          target: runtime
       - name: Run integration tests
         run: |
           ./scripts/test-integration.sh ${{ fromJSON(steps.meta.outputs.json).tags[0] }}

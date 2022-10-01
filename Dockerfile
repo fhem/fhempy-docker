@@ -9,8 +9,7 @@ ADD  https://raw.githubusercontent.com/fhempy/fhempy/${FHEMPY_V}/requirements.tx
 RUN pip wheel --no-cache-dir --no-deps --wheel-dir /wheels -r requirements.txt
 
 
-# stage
-FROM python:3.9.14-slim
+FROM python:3.9.14-slim as runtime
 
 WORKDIR /usr/src/app
 
@@ -20,7 +19,6 @@ RUN pip install --no-cache /wheels/*
 
 COPY src/health-check.sh /health-check.sh
 RUN chmod +x /health-check.sh
-
 
 HEALTHCHECK --interval=50s --timeout=15s --start-period=10s --retries=3 CMD /health-check.sh
 
