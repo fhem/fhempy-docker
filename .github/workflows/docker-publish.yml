@@ -10,6 +10,9 @@ on:
   release:
     types:
       - published
+  push:
+    branches:
+      - main
 
 
 env:
@@ -107,7 +110,7 @@ jobs:
         with:
           context: .
           platforms: linux/amd64,linux/arm/v5
-          push: ${{ github.event_name != 'pull_request' }}
+          push: ${{ github.event_name != 'pull_request' && github.event_name == 'release' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: |
