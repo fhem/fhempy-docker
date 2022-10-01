@@ -47,15 +47,15 @@ jobs:
            echo "::set-output name=image_name::$(grep '^FROM' Dockerfile | cut -d ' ' -f2 | cut -d ':' -f1)"
            echo "::set-output name=image_version::$(grep '^FROM' Dockerfile | cut -d ' ' -f2 | cut -d ':' -f2)"
       - name: Update docs
-        if: ${{ github.event_name != 'pull_request' }}
+        if: ${{ github.event_name == 'release' }}
         run: |
-            sed -e "s/{FHEMPY_VERSION}/${{ steps.split_fhempyV.outputs.result}}/" -e "s/{PYTHON_VERSION}/${{ steps.extract_image.outputs.image_version}}/" -e "s/{DEBIAN_RELEASE}/buster/" -e/{IMAGE_TAG}/${{ github.ref_name }}/ < README.tmpl > README.md
+            sed -e "s/{FHEMPY_VERSION}/${{ steps.split_fhempyV.outputs.result}}/" -e "s/{PYTHON_VERSION}/${{ steps.extract_image.outputs.image_version}}/" -e "s/{DEBIAN_RELEASE}/buster/" -e s/{IMAGE_TAG}/${{ github.ref_name }}/ < README.tmpl > README.md
 
       # Install the cosign tool except on PR
       # https://github.com/sigstore/cosign-installer
       - name: Install cosign
-        if: github.event_name != 'pull_request'
-        uses: sigstore/cosign-installer@ced07f21fb1da67979f539bbc6304c16c0677e76
+        if: github.event_name == 'release'
+        uses: sigstore/cosign-installer@v2.7.0
         with:
           cosign-release: 'v1.9.0'
       -
@@ -69,8 +69,8 @@ jobs:
       # Login against a Docker registry except on PR
       # https://github.com/docker/login-action
       - name: Log into registry ${{ env.REGISTRY }}
-        if: github.event_name != 'pull_request'
-        uses: docker/login-action@49ed152c8eca782a232dede0303416e8f356c37b
+        if: github.event_name == 'release'
+        uses: docker/login-action@v2.0.0
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
@@ -80,7 +80,7 @@ jobs:
       # https://github.com/docker/metadata-action
       - name: Extract Docker metadata
         id: meta
-        uses: docker/metadata-action@69f6fc9d46f2f8bf0d5491e4aabe0bb8c6a4678a
+        uses: docker/metadata-action@v4.0.1
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
 
@@ -110,7 +110,7 @@ jobs:
         with:
           context: .
           platforms: linux/amd64,linux/arm/v5
-          push: ${{ github.event_name != 'pull_request' && github.event_name == 'release' }}
+          push: ${{ github.event_name == 'release' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: |
@@ -126,7 +126,7 @@ jobs:
       # transparency data even for private images, pass --force to cosign below.
       # https://github.com/sigstore/cosign
       - name: Sign the published Docker image
-        if: ${{ github.event_name != 'pull_request' }}
+        if: ${{ github.event_name == 'release' }}
         env:
           COSIGN_EXPERIMENTAL: "true"
         # This step uses the identity token to provision an ephemeral certificate
@@ -135,6 +135,7 @@ jobs:
       
       - name: git commit README.md 
         id: commit
+        if: ${{ github.event_name == 'release' }}
         run: |
           git config --global user.email "action@github.com"
           git config --local user.name "GitHub Action"
@@ -142,6 +143,7 @@ jobs:
       
       - name: Push back to protected branch (main)
         uses: CasperWA/push-protected@v2
+        if: ${{ github.event_name == 'release' }}
         with:
           token: ${{ secrets.BOT_PUSH_TOKEN }}
           branch: main
