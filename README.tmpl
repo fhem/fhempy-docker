@@ -18,9 +18,9 @@ Example is assuming, that your FHEM network is named `net` and already defined a
   fhempy:
     networks:
       - net
-    image: ghcr.io/fhem/fhempy-docker:main
+    image: ghcr.io/fhem/fhempy-docker:{IMAGE_TAG}
  ```
 
 To start your container right away:
     
-    docker run -d --name fhempy ghcr.io/fhem/fhempy-docker:main
+    docker run -d --name fhempy ghcr.io/fhem/fhempy-docker:{IMAGE_TAG}

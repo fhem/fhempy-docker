@@ -1,19 +1,16 @@
-name: Docker
+name: Docker-publish
 
 # This workflow uses actions that are not certified by GitHub.
 # They are provided by a third-party and are governed by
 # separate terms of service, privacy policy, and support
 # documentation.
 
+
 on:
-  schedule:
-    - cron: '29 4 * * *'
-  push:
-    branches: [ "main" ]
-    # Publish semver tags as releases.
-    tags: [ 'v*.*.*' ]
-  pull_request:
-    branches: [ "main" ]
+  release:
+    types:
+      - published
+
 
 env:
   # Use docker.io for Docker Hub if empty
@@ -36,6 +33,7 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
+        with:
 
       - name: Split fhempy Version
         id: split_fhempyV
@@ -49,10 +47,7 @@ jobs:
       - name: Update docs
         if: ${{ github.event_name != 'pull_request' }}
         run: |
-            sed -e "s/{FHEMPY_VERSION}/${{ steps.split_fhempyV.outputs.result}}/" -e "s/{PYTHON_VERSION}/${{ steps.extract_image.outputs.image_version}}/" -e "s/{DEBIAN_RELEASE}/buster/" < README.tmpl > README.md
-      - uses: stefanzweifel/git-auto-commit-action@v4.15.0
-        with:
-          file_pattern: 'README.md'
+            sed -e "s/{FHEMPY_VERSION}/${{ steps.split_fhempyV.outputs.result}}/" -e "s/{PYTHON_VERSION}/${{ steps.extract_image.outputs.image_version}}/" -e "s/{DEBIAN_RELEASE}/buster/" -e/{IMAGE_TAG}/${{ github.ref_name }}	/ < README.tmpl > README.md
 
       # Install the cosign tool except on PR
       # https://github.com/sigstore/cosign-installer
@@ -133,3 +128,10 @@ jobs:
         # This step uses the identity token to provision an ephemeral certificate
         # against the sigstore community Fulcio instance.
         run: echo "${{ steps.meta.outputs.tags }}" | xargs -I {} cosign sign {}@${{ steps.build-and-push.outputs.digest }}
+
+      - name: Push to protected branch
+        uses: CasperWA/push-protected@v2
+        with:
+          token: ${{ secrets.BOT_PUSH_TOKEN }}
+          branch: main
+          #unprotect_reviews: true
