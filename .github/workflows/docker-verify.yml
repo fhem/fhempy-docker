@@ -33,13 +33,14 @@ jobs:
         id: split_fhempyV
         run: |
           echo "::set-output name=result::$(grep '^fhempy' requirements.txt | cut -d '=' -f3)"
+      
       - name: Find String
         id: extract_image
         run: |
            echo "::set-output name=image_name::$(grep '^FROM' Dockerfile | cut -d ' ' -f2 | cut -d ':' -f1)"
            echo "::set-output name=image_version::$(grep '^FROM' Dockerfile | cut -d ' ' -f2 | cut -d ':' -f2)"
      
-      -  name: Build image and run integrationtests (amd64)
+      - name: Build image and run integrationtests (amd64)
          id: build_and_run_integrationtests
          uses: ./.github/actions/integrationtest
          with:
