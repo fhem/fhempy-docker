@@ -85,7 +85,7 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-base
 
-      - name: Build base image
+      - name: Build base image amd64
         uses: docker/build-push-action@v3.1.1
         id: docker_build_base
         with:
@@ -95,8 +95,8 @@ jobs:
           load: true
           tags: ${{ steps.meta-base.outputs.tags }}
           labels: ${{ steps.meta-base.outputs.labels }}
-          cache-to: type=gha,mode=max,scope=verify_base
-          cache-from: type=gha,scope=verify_base
+          cache-to: type=gha,mode=max,scope=verify_base_amd64
+          cache-from: type=gha,scope=verify_base_amd64
           build-args: FHEMPY_V=${{ steps.split_fhempyV.outputs.result}}
           target: base
 
@@ -117,9 +117,10 @@ jobs:
           tags: ${{ steps.meta-runtime.outputs.tags }}
           labels: ${{ steps.meta-runtime.outputs.labels }}
           cache-from: | 
-            type=gha,scope=verify_base
-            type=gha,scope=verify_runtime
-          cache-to: type=gha,mode=max,scope=verify_runtime
+            type=gha,scope=verify_base_amd64
+            type=gha,scope=verify_runtime_amd64
+            type=gha,scope=verify_runtime_cross
+          cache-to: type=gha,mode=max,scope=verify_runtime_amd64
           build-args: FHEMPY_V=${{ steps.split_fhempyV.outputs.result}}
           target: runtime
 
@@ -139,8 +140,9 @@ jobs:
           tags: ${{ steps.meta_base.outputs.tags }}
           labels: ${{ steps.meta_base.outputs.labels }}
           cache-from: |
-            type=gha,scope=verify_base
-          cache-to: type=gha,mode=max,scope=verify_base
+            type=gha,scope=verify_base_amd64
+            type=gha,scope=verify_base_cross
+          cache-to: type=gha,mode=max,scope=verify_base_cross
           build-args: FHEMPY_V=${{ steps.split_fhempyV.outputs.result}}
 
       - name: Build and push Docker image for all plattforms
@@ -153,10 +155,10 @@ jobs:
           tags: ${{ steps.meta-runtime.outputs.tags }}
           labels: ${{ steps.meta-runtime.outputs.labels }}
           cache-from: | 
-            type=gha,scope=verify_base
-            type=gha,scope=verify_runtime
-            type=gha,scope=publish_runtime
-          cache-to: type=gha,mode=max,scope=publish_runtime
+            type=gha,scope=verify_base_cross
+            type=gha,scope=verify_runtime_amd64
+            type=gha,scope=publish_runtime_cross
+          cache-to: type=gha,mode=max,scope=publish_runtime_cross
           build-args: FHEMPY_V=${{ steps.split_fhempyV.outputs.result}}
           target: runtime
 
