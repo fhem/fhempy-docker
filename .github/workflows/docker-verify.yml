@@ -84,7 +84,7 @@ jobs:
           cache-from: | 
             type=gha,scope=verify_base
             type=gha,scope=verify_runtime
-          cache-to: verify_runtime
+          cache-to: type=gha,mode=max,scope=verify_runtime
           build-args: FHEMPY_V=${{ steps.split_fhempyV.outputs.result}}
           target: runtime
       - name: Run integration tests
