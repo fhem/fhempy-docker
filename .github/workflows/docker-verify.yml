@@ -42,6 +42,6 @@ jobs:
       -  name: Build image and run integrationtests (amd64)
          id: build_and_run_integrationtests
          uses: ./.github/actions/integrationtests
-         width:
+         with:
            PLATTFORM: linux/amd64
            FHEMPY_VERSION: ${{ steps.split_fhempyV.outputs.result }}
