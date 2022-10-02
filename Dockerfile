@@ -5,7 +5,8 @@ RUN apt update && \
     && rm -rf /var/lib/apt/lists/*
 
 ARG FHEMPY_V=unset
-ADD  https://raw.githubusercontent.com/fhempy/fhempy/v${FHEMPY_V}/requirements.txt /
+#ADD  https://raw.githubusercontent.com/fhempy/fhempy/v${FHEMPY_V}/requirements.txt /
+COPY requirements.txt .
 RUN pip wheel --no-cache-dir --no-deps --wheel-dir /wheels -r requirements.txt
 
 
@@ -14,9 +15,7 @@ FROM python:3.9.14-slim as runtime
 WORKDIR /usr/src/app
 
 COPY --from=base /wheels /wheels
-COPY requirements.txt .
 RUN pip install --no-cache /wheels/*
-RUN pip install --no-cache -r requirements.txt
 
 COPY src/health-check.sh /health-check.sh
 RUN chmod +x /health-check.sh
