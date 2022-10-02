@@ -7,7 +7,7 @@ RUN apt update && \
 ARG FHEMPY_V=unset
 #ADD  https://raw.githubusercontent.com/fhempy/fhempy/v${FHEMPY_V}/requirements.txt /
 COPY requirements.txt .
-RUN pip wheel --no-cache-dir --no-deps --wheel-dir /wheels -r requirements.txt
+RUN pip wheel --no-cache-dir --wheel-dir /wheels -r requirements.txt
 
 
 FROM python:3.9.14-slim as runtime
