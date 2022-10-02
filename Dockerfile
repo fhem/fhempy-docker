@@ -20,6 +20,10 @@ COPY --from=base /wheels /wheels
 RUN pip install --no-cache --find-links=/wheels -r requirements.txt
 # RUN rm -r /wheels
 
+RUN apt update && \
+    apt install curl -y --no-install-recommends \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY src/health-check.sh /health-check.sh
 RUN chmod +x /health-check.sh
 
