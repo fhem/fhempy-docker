@@ -29,7 +29,7 @@ runs:
         id: docker_build_base
         with:
           context: .
-          platforms: {{ inputs.PLATTFORM }}
+          platforms: ${{ inputs.PLATTFORM }}
           push: false
           load: true
           tags: ${{ steps.meta-base.outputs.tags }}
@@ -50,7 +50,7 @@ runs:
         id: docker_build_runtime
         with:
           context: .
-          platforms: {{ inputs.PLATTFORM }}
+          platforms: ${{ inputs.PLATTFORM }}
           push: false
           load: true
           tags: ${{ steps.meta-runtime.outputs.tags }}
