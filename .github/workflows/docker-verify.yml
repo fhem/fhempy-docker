@@ -60,8 +60,8 @@ jobs:
           load: true
           tags: ${{ steps.meta-base.outputs.tags }}
           labels: ${{ steps.meta-base.outputs.labels }}
-          cache-to: type=gha,mode=max
-          cache-from: type=gha
+          cache-to: type=gha,mode=max,scope=verify_base
+          cache-from: type=gha,scope=verify_base
           build-args: FHEMPY_V=${{ steps.split_fhempyV.outputs.result}}
           target: base
             
@@ -81,7 +81,10 @@ jobs:
           load: true
           tags: ${{ steps.meta-runtime.outputs.tags }}
           labels: ${{ steps.meta-runtime.outputs.labels }}
-          cache-from: type=gha
+          cache-from: | 
+            type=gha,scope=verify_base
+            type=gha,scope=verify_runtime
+          cache-to: verify_runtime
           build-args: FHEMPY_V=${{ steps.split_fhempyV.outputs.result}}
           target: runtime
       - name: Run integration tests
