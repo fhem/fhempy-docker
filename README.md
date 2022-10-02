@@ -5,7 +5,7 @@ Docker Container with [fhempy](https://github.com/fhempy/fhempy) which can be co
 
 * Debian 11 buster
 * Python 3.9.14
-* fhempy 0.1.477
+* fhempy 0.1.487
 
 
 
@@ -18,9 +18,9 @@ Example is assuming, that your FHEM network is named `net` and already defined a
   fhempy:
     networks:
       - net
-    image: ghcr.io/fhem/fhempy-docker:main
+    image: ghcr.io/fhem/fhempy-docker:v1.0
  ```
 
 To start your container right away:
     
-    docker run -d --name fhempy ghcr.io/fhem/fhempy-docker:main
+    docker run -d --name fhempy ghcr.io/fhem/fhempy-docker:v1.0
