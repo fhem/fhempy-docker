@@ -16,7 +16,7 @@ WORKDIR /usr/src/app
 COPY --from=base /wheels /wheels
 COPY requirements.txt .
 RUN pip install --no-cache /wheels/*
-RUN pip install --no-cache -r requirements
+RUN pip install --no-cache -r requirements.txt
 
 COPY src/health-check.sh /health-check.sh
 RUN chmod +x /health-check.sh
