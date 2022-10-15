@@ -32,7 +32,7 @@ jobs:
       - name: Split fhempy Version
         id: split_fhempyV
         run: |
-          echo "::set-output name=result::$(grep '^fhempy' requirements.txt | cut -d '=' -f3)"
+          echo "result=$(grep '^fhempy' requirements.txt | cut -d '=' -f3)" >> $GITHUB_OUTPUT
       
       - name: Find String
         id: extract_image
