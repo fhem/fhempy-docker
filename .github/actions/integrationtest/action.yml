@@ -24,12 +24,6 @@ runs:
         with:
           images: base
 
-      - name: create cache dirs
-        shell: bash
-        run: |
-          mkdir -p ./cache/pip
-          mkdir -p ./cache/wheels
-
       - name: Cache wheels 
         id: cache-wheels
         uses: actions/cache@v3
@@ -88,8 +82,3 @@ runs:
         shell: bash
         run: |
           ./scripts/test-integration.sh ${{ fromJSON(steps.meta-runtime.outputs.json).tags[0] }}
-
-      - name: list files
-        shell: bash
-        run: |
-          ls -R ./cache

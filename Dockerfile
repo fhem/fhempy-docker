@@ -35,7 +35,7 @@ COPY requirements.txt .
 COPY --from=base /wheels /wheels
 
 ENV PIP_FIND_LINKS="file:///wheels"
-RUN pip install --no-cache -r requirements.txt
+RUN pip install --no-cache --no-deps -r requirements.txt 
 
 # RUN rm -r /wheels
 
