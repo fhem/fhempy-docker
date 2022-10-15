@@ -34,14 +34,14 @@ runs:
         id: cache-wheels
         uses: actions/cache@v3
         with:
-          path: .cache/wheels
+          path: ./cache/wheels
           key: wheels
       
       - name: Cache pip
         id: cache-pip
         uses: actions/cache@v3
         with:
-          path: .cache/pip
+          path: ./cache/pip
           key: pip
 
       - name: Build base image

@@ -46,8 +46,3 @@ jobs:
         with:
            PLATTFORM: linux/amd64
            FHEMPY_VERSION: ${{ steps.split_fhempyV.outputs.result }}
-
-      - name: list files 2
-        shell: bash
-        run: |
-          ls -R ./cache
