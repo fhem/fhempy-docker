@@ -65,6 +65,26 @@ jobs:
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
 
+      - name: Cache wheels 
+        id: cache-wheels
+        uses: actions/cache@v3
+        with:
+          path: ./cache/wheels
+          key: c-wheels-${{ steps.split_fhempyV.outputs.result}}
+          restore-keys: |
+            c-wheels-
+            whells-
+      
+      - name: Cache pip
+        id: cache-pip
+        uses: actions/cache@v3
+        with:
+          path: ./cache/pip
+          key: c-pip-${{ steps.split_fhempyV.outputs.result}}
+          restore-keys: |
+            c-pip
+            pip
+
       - name: Build image and run integrationtests (amd64)
         id: build_and_run_integrationtests
         uses: ./.github/actions/integrationtest

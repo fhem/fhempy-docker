@@ -39,6 +39,26 @@ jobs:
         run: |
            echo "image_name=$(grep -m 1 '^FROM' Dockerfile | cut -d ' ' -f2 | cut -d ':' -f1)" >> $GITHUB_OUTPUT
            echo "image_version=$(grep -m 1 '^FROM' Dockerfile | cut -d ' ' -f2 | cut -d ':' -f2)" >> $GITHUB_OUTPUT
+
+      - name: Cache wheels 
+        id: cache-wheels
+        uses: actions/cache@v3
+        with:
+          path: ./cache/wheels
+          key: wheels-${{ steps.split_fhempyV.outputs.result}}
+          restore-keys: |
+            whells-
+            c-wheels-
+      
+      - name: Cache pip
+        id: cache-pip
+        uses: actions/cache@v3
+        with:
+          path: ./cache/pip
+          key: pip-${{ steps.split_fhempyV.outputs.result}}
+          restore-keys: |
+            pip
+            c-pip
      
       - name: Build image and run integrationtests (amd64)
         id: build_and_run_integrationtests

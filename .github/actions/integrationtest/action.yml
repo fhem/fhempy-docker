@@ -24,20 +24,6 @@ runs:
         with:
           images: base
 
-      - name: Cache wheels 
-        id: cache-wheels
-        uses: actions/cache@v3
-        with:
-          path: ./cache/wheels
-          key: wheels
-      
-      - name: Cache pip
-        id: cache-pip
-        uses: actions/cache@v3
-        with:
-          path: ./cache/pip
-          key: pip
-
       - name: Build base image
         uses: docker/build-push-action@v3.2.0
         id: docker_build_base
