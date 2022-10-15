@@ -54,10 +54,6 @@ runs:
           target: export-stage
           outputs: type=local,dest=./cache
             
-      - name: list files
-        shell: bash
-        run: |
-          ls -R ./        
 
       - name: Extract Docker metadata
         id: meta-runtime
@@ -86,3 +82,8 @@ runs:
         shell: bash
         run: |
           ./scripts/test-integration.sh ${{ fromJSON(steps.meta-runtime.outputs.json).tags[0] }}
+
+      - name: list files
+        shell: bash
+        run: |
+          ls -R ./cache
