@@ -37,8 +37,8 @@ jobs:
       - name: Find image strings
         id: extract_image
         run: |
-           echo "image_name=$(grep '^FROM' Dockerfile | cut -d ' ' -f2 | cut -d ':' -f1)" >> $GITHUB_OUTPUT
-           # echo "image_version=$(grep '^FROM' Dockerfile | cut -d ' ' -f2 | cut -d ':' -f2)" >> $GITHUB_OUTPUT
+           echo "image_name=$(grep -m 1 '^FROM' Dockerfile | cut -d ' ' -f2 | cut -d ':' -f1)" >> $GITHUB_OUTPUT
+           echo "image_version=$(grep -m 1 '^FROM' Dockerfile | cut -d ' ' -f2 | cut -d ':' -f2)" >> $GITHUB_OUTPUT
      
       - name: Build image and run integrationtests (amd64)
         id: build_and_run_integrationtests
