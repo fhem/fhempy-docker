@@ -24,6 +24,12 @@ runs:
         with:
           images: base
 
+      - name: create cache dirs
+        shell: bash
+        run: |
+          mkdir -p ./cache/pip
+          mkdir -p ./cache/wheels
+
       - name: Cache wheels 
         id: cache-wheels
         uses: actions/cache@v3
