@@ -24,6 +24,20 @@ runs:
         with:
           images: base
 
+      - name: Cache wheels 
+        id: cache-wheels
+        uses: actions/cache@v3
+        with:
+          path: .cache/wheels
+          key: wheels
+      
+      - name: Cache pip
+        id: cache-pip
+        uses: actions/cache@v3
+        with:
+          path: .cache/pip
+          key: pip
+
       - name: Build base image
         uses: docker/build-push-action@v3.1.1
         id: docker_build_base
@@ -31,13 +45,14 @@ runs:
           context: .
           platforms: ${{ inputs.PLATTFORM }}
           push: false
-          load: true
+          load: false
           tags: ${{ steps.meta-base.outputs.tags }}
           labels: ${{ steps.meta-base.outputs.labels }}
           cache-to: type=gha,mode=max,scope=verify_base_${{ inputs.PLATTFORM }}
           cache-from: type=gha,scope=verify_base_${{ inputs.PLATTFORM }}
           build-args: FHEMPY_V=${{ inputs.FHEMPY_VERSION }}
-          target: base
+          target: export-stage
+          outputs: ./cache
             
       - name: Extract Docker metadata
         id: meta-runtime
