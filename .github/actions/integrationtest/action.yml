@@ -52,7 +52,7 @@ runs:
           cache-from: type=gha,scope=verify_base_${{ inputs.PLATTFORM }}
           build-args: FHEMPY_V=${{ inputs.FHEMPY_VERSION }}
           target: export-stage
-          outputs: ./cache
+          outputs: type=local,dest=./cache
             
       - name: Extract Docker metadata
         id: meta-runtime
