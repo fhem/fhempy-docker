@@ -12,8 +12,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-        #with:
-        #  repository: 'fhempyfhempy'
+        with:
+          repository: 'fhempy/fhempy'
 
       #- name: download fhempy
       #- run: |
