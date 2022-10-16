@@ -16,7 +16,8 @@ jobs:
         #  repository: 'fhempyfhempy'
 
       - name: download fhempy
-      - pip download 
+      #- run: |
+      #  pip download 
 
       - name: Set up QEMU
         if: runner.os == 'Linux'
