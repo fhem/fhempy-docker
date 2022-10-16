@@ -15,6 +15,7 @@ RUN mkdir -p /pip
 COPY *./cache/pip /root/.cache/pip
 COPY *./cache/wheels /root/.cache/wheels
 
+ENV ARGO_NET_GIT_FETCH_WITH_CLI=true
 # Build dependencys as wheels
 RUN pip wheel --wheel-dir /wheels --find-links file:///root/.cache/wheels -r requirements.txt
 
