@@ -47,7 +47,7 @@ jobs:
           path: ./cache/wheels
           key: wheels-${{ steps.split_fhempyV.outputs.result}}
           restore-keys: |
-            whells-
+            wheels-
             c-wheels-
       
       - name: Cache pip

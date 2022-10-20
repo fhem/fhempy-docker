@@ -43,7 +43,7 @@ jobs:
         run: |
           echo "result=$(grep '^fhempy' requirements.txt | cut -d '=' -f3)" >> $GITHUB_OUTPUT      
 
-      - name: Find image sString
+      - name: Find image String
         id: extract_image
         run: |
            echo "image_name=$(grep -m 1 '^FROM' Dockerfile | cut -d ' ' -f2 | cut -d ':' -f1)" >> $GITHUB_OUTPUT
@@ -131,7 +131,13 @@ jobs:
         if: always()
         with:
           name: cross-build-wheels
-          path: ./cache/wheels
+          path: |
+            ./cache/wheels
+            ./cache/wheels/**/*
+      
+      - uses: list files in wheel Cache
+        run: |
+          du -a ./cache/wheels/
 
       - name: Build and push Docker image for all plattforms
         uses: docker/build-push-action@v3.1.1

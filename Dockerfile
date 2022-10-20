@@ -17,10 +17,10 @@ COPY *./cache/wheels /root/.cache/wheels
 
 ENV CARGO_NET_GIT_FETCH_WITH_CLI=true
 # Build dependencys as wheels
-RUN pip wheel --wheel-dir /wheels --find-links file:///root/.cache/wheels -r requirements.txt
+# RUN pip wheel --wheel-dir /wheels --find-links file:///root/.cache/wheels -r requirements.txt
 
 # Install fhempy 
-RUN pip install fhempy==${FHEMPY_V} --no-cache --find-links file:///wheels
+# RUN pip install fhempy==${FHEMPY_V} --no-cache --find-links file:///wheels
 
 # gather dynamic loaded dependecys
 COPY src/get-deps.sh /get-deps.sh
