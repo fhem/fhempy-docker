@@ -73,7 +73,7 @@ jobs:
           key: c-wheels-${{ steps.split_fhempyV.outputs.result}}
           restore-keys: |
             c-wheels-
-            whells-
+            wheels-
       
       - name: Cache pip
         id: cache-pip
