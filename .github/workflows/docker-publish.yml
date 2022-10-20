@@ -135,7 +135,7 @@ jobs:
             ./cache/wheels
             ./cache/wheels/**/*
       
-      - uses: list files in wheel Cache
+      - name: list files in wheel Cache
         run: |
           du -a ./cache/wheels/
 
