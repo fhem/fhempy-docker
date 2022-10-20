@@ -127,6 +127,12 @@ jobs:
           target: export-stage
           outputs: type=local,dest=./cache
 
+      - uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: cross-build-wheels
+          path: ./cache/wheels
+
       - name: Build and push Docker image for all plattforms
         uses: docker/build-push-action@v3.1.1
         id: docker_build_runtime_cross
