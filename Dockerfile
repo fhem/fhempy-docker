@@ -3,7 +3,7 @@
 # base
 FROM python:3.9.14 as base
 RUN apt update && \
-    apt install dbus python-dbus-dev rustc build-essential libssl-dev libffi-dev python3-dev cargo jq -y --no-install-recommends  \
+    apt install dbus python-dbus-dev rustc build-essential libssl-dev libffi-dev python3-dev cargo jq git -y --no-install-recommends  \
     && rm -rf /var/lib/apt/lists/*
 
 ARG FHEMPY_V=unset
@@ -18,9 +18,15 @@ COPY *./cache/wheels /root/.cache/wheels
 # Build dependencys as wheels
 RUN pip wheel --wheel-dir /wheels --find-links file:///root/.cache/wheels -r requirements.txt
 
-# Install fhempy and gather dynamic loaded dependecys
+# Install fhempy 
 RUN pip install fhempy==${FHEMPY_V} --no-cache --find-links file:///wheels
-RUN find / -type f -name manifest.json -exec  jq -e '.requirements[]' {} + |xargs -L1 -I{} pip wheel --wheel-dir /wheels --find-links file:///root/.cache/wheels {}
+
+# gather dynamic loaded dependecys
+COPY src/get-deps.sh /get-deps.sh
+# Build wheels for dependencys
+RUN chmod +x /get-deps.sh && /get-deps.sh
+
+
 
 # Just a stage to export our pip and wheel cache
 FROM scratch AS export-stage
