@@ -12,8 +12,8 @@ ADD https://raw.githubusercontent.com/fhempy/fhempy/v${FHEMPY_V}/requirements.tx
 RUN mkdir -p /pip
 
 #RUN --mount=type=bind,target/root/.cache/pip,source=./cache/pip,rw
-COPY *./cache/pip /root/.cache/pip
-COPY *./cache/wheels /root/.cache/wheels
+COPY ./cache/pip /root/.cache/pip
+COPY ./cache/wheels /root/.cache/wheels
 
 ENV CARGO_NET_GIT_FETCH_WITH_CLI=true
 # Build dependencys as wheels
