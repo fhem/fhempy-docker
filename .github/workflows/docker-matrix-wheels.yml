@@ -8,7 +8,7 @@ on:
 
 
 jobs:
-  getVersion:
+  prepare_build:
 #    name: Get fhempy version
     runs-on: ubuntu-latest
     outputs:
@@ -22,61 +22,113 @@ jobs:
         run: |
           echo "result=$(grep '^fhempy' requirements.txt | cut -d '=' -f3)" >> $GITHUB_OUTPUT      
  
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Setup Docker buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Build builder stage
+        id: build_base_cross
+        uses: docker/build-push-action@v3.2.0
+        with:
+          context: .
+          file: Dockerfile.wheels
+          platforms: linux/amd64,linux/arm/v5
+          push: false
+          target: base
+          cache-to: type=gha,mode=max,scope=base_stage_cross
+
   prepare_matrix:
 #    name:  Find fhempy modules 
-    needs: getVersion
+    needs: prepare_build
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{steps.getModules.outputs.matrix}}
-      modDeps: ${{steps.getDependencys.outputs.modDeps}}
 
     steps:
       - uses: actions/checkout@v3
         with:
           repository: 'fhempy/fhempy'
-          ref: 'v${{ needs.getVersion.outputs.fhempyV )}}'
+          ref: 'v${{ needs.prepare_build.outputs.fhempyV }}'
 
-      - name: Get module name and prepare Matrix
+      - name: Get module name and prepare matrix
         id: getModules
+        working-directory: FHEM/bindings/python/fhempy/lib
         run: |
-          echo "matrix=$(find ./ -type f -name manifest.json -exec sh -c 'basename $(dirname {})' \; | jq -cnR '[inputs | select(length>0)]')" >> $GITHUB_OUTPUT
-
-      - name: Save module dependencys
-        id: getDependencys
-        run: |
-          echo "modDeps=$(find ./ -type f -name manifest.json -exec  jq -n 'reduce inputs as $s (.; .[input_filename|rtrimstr("/manifest.json")|ltrimstr("./")] += $s)' {} +)" >> $GITHUB_OUTPUT
+          MODS=($(find ./ -type f -name manifest.json -exec sh -c 'dirname {}' \;  | sed 's|^./||'))
+          #printf '%s\n' "${MODS[@]}"
+          
+          JSON='{ "include":[] }'
+          for i in "${MODS[@]}"
+          do
+              REQS=$(jq -cr 'select(.requirements != []).requirements' ./$i/manifest.json)
+              if [ -z $REQS ]; then 
+                continue 
+              fi
+              JSON=$(echo $JSON | jq -c --argjson REQUIREMENTS $REQS --arg M "$i" '.include += [{"module": $M, "requirements": $REQUIREMENTS}]')
+          done
+          #echo $JSON
+          echo "matrix=$JSON" >> $GITHUB_OUTPUT
 
   buildwWeels:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      packages: write
-      # This is used to complete the identity challenge
-      # with sigstore/fulcio when running outside of PRs.
-      id-token: write
-    needs: prepare_matrix
+    needs: [prepare_build, prepare_matrix]
     strategy:
+      max-parallel: 2
       matrix:
-        fhempyModule: ${{fromJson(needs.prepare_matrix.outputs.matrix)}}
+        ${{fromJson(needs.prepare_matrix.outputs.matrix)}}
+
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
       - name: check variables
         run: |
-          echo "${{matrix.fhempyModule}}"
-          echo "${{needs.prepare_matrix.outputs.modDeps}}"
+          echo '${{ toJSON(matrix) }}'
 
-      - name: extract requirement for mod
+      - name: overwrite requirement for mod
         run: |
-          echo ${{matrix.fhempyModule}} | jq -r '.${{matrix.fhempyModule}}.requirements[]'  > ./requirements.txt
+          echo '${{toJSON(matrix.requirements)}}'  | jq --raw-output -e '.[]' > ./requirements.txt
           cat ./requirements.txt
 
-      # - name: setup docker for building wheel
-      # needs some special dockerfile
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
 
-      # - name: build dependenys inside docker
-      # inject requirements file generated here 
+      - name: Setup Docker buildx
+        uses: docker/setup-buildx-action@v2
 
-      #- name: upload wheels as artifact for module ${{matrix.fhempyModule}}
-      # uses: actions/upload-artifact@v3
-      #  with:
-      #    path: ./wheelhouse/*.whl
+      # Build and push Docker image with Buildx (don't push if it is not a release)
+      # https://github.com/docker/build-push-action
+      - name: Build wheels 
+        id: build_base_cross
+        uses: docker/build-push-action@v3.2.0
+        with:
+          context: .
+          file: Dockerfile.wheels
+          platforms: linux/amd64,linux/arm/v5
+          push: false
+          target: export-stage
+          outputs: type=local,dest=./wheelhouse
+          cache-from: |
+            type=gha,scope=base_stage_cross
 
+      #- name: list files in wheelhouse
+      #  run: |
+      #    du -a ./wheelhouse
+
+      - name: upload wheels as artifact for module ${{matrix.module}}
+        uses: actions/upload-artifact@v3
+        with: 
+          name: ${{matrix.module}}-armv5
+          path: |
+            ./wheelhouse/linux_arm_v5/wheels
+            -/wheelhouse/linux_arm_v5/requirements.txt
+
+      - name: upload wheels as artifact for module ${{matrix.module}}
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{matrix.module}}-amd64
+          path: |
+            ./wheelhouse/linux_amd64/wheels
+            -/wheelhouse/linux_amd64/requirements.txt

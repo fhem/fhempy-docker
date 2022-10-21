@@ -1,0 +1,48 @@
+# syntax=docker/dockerfile:1
+
+# base
+FROM python:3.9.14 as base
+RUN apt update && \
+<<<<<<< HEAD
+<<<<<<< HEAD
+    apt install dbus python-dbus-dev rustc build-essential libssl-dev libffi-dev python3-dev cargo cmake -y --no-install-recommends  \
+    && rm -rf /var/lib/apt/lists/*
+
+
+FROM base AS builder
+COPY requirements.txt .
+ENV CARGO_NET_GIT_FETCH_WITH_CLI=true
+=======
+    apt install dbus python-dbus-dev rustc build-essential libssl-dev libffi-dev python3-dev cargo -y --no-install-recommends  \
+=======
+    apt install dbus python-dbus-dev rustc build-essential libssl-dev libffi-dev python3-dev cargo cmake -y --no-install-recommends  \
+>>>>>>> afe2530... add cmake to packages
+    && rm -rf /var/lib/apt/lists/*
+
+
+FROM base AS builder
+COPY requirements.txt .
+ENV CARGO_NET_GIT_FETCH_WITH_CLI=true
+<<<<<<< HEAD
+
+>>>>>>> a9cc1b4... try real build
+=======
+>>>>>>> 6813bf9... Cache base imgae for fewer runtime
+# Build dependencys as wheels
+RUN pip wheel --wheel-dir /wheels -r requirements.txt
+
+
+# Just a stage to export our wheel 
+FROM scratch AS export-stage
+<<<<<<< HEAD
+<<<<<<< HEAD
+COPY --from=builder /wheels ./wheels
+COPY --from=builder /requirements.txt ./
+=======
+COPY --from=base /wheels ./wheels
+COPY --from=base /requirements.txt ./
+>>>>>>> a9cc1b4... try real build
+=======
+COPY --from=builder /wheels ./wheels
+COPY --from=builder /requirements.txt ./
+>>>>>>> 6813bf9... Cache base imgae for fewer runtime
