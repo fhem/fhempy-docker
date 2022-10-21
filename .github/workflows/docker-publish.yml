@@ -137,7 +137,7 @@ jobs:
       
       - name: list files in wheel Cache
         run: |
-          du -a ./cache/wheels/
+          du -a ./
 
       - name: Build and push Docker image for all plattforms
         uses: docker/build-push-action@v3.1.1
