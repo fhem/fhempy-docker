@@ -1,15 +1,18 @@
-name: Matrix-Build
+name: Matrix-build-wheels
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+#      - main
+      - 'releases/**'
+
 
 jobs:
-
   getVersion:
-    name: Get fhempy version
+#    name: Get fhempy version
     runs-on: ubuntu-latest
     outputs:
       fhempyV: ${{steps.split_fhempyV.outputs.result}}
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -20,7 +23,7 @@ jobs:
           echo "result=$(grep '^fhempy' requirements.txt | cut -d '=' -f3)" >> $GITHUB_OUTPUT      
  
   prepare_matrix:
-    name:  Find fhempy modules 
+#    name:  Find fhempy modules 
     needs: getVersion
     runs-on: ubuntu-latest
     outputs:
@@ -45,6 +48,12 @@ jobs:
 
   buildwWeels:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+      # This is used to complete the identity challenge
+      # with sigstore/fulcio when running outside of PRs.
+      id-token: write
     needs: prepare_matrix
     strategy:
       matrix:
@@ -60,13 +69,13 @@ jobs:
           echo ${{matrix.fhempyModule}} | jq -r '.${{matrix.fhempyModule}}.requirements[]'  > ./requirements.txt
           cat ./requirements.txt
 
-      - name: setup docker for building wheel
+      # - name: setup docker for building wheel
       # needs some special dockerfile
 
-      - name: build dependenys inside docker
+      # - name: build dependenys inside docker
       # inject requirements file generated here 
 
-      - name: upload wheels as artifact for module ${{matrix.fhempyModule}}
+      #- name: upload wheels as artifact for module ${{matrix.fhempyModule}}
       # uses: actions/upload-artifact@v3
       #  with:
       #    path: ./wheelhouse/*.whl
