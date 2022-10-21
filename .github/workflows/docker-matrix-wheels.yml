@@ -38,6 +38,9 @@ jobs:
           push: false
           target: base
           cache-to: type=gha,mode=max,scope=base_stage_cross
+          cache-from: |
+            type=gha,scope=base_stage_cross
+          build-args: FHEMPY_V=${{ steps.split_fhempyV.outputs.result}}
 
   prepare_matrix:
 #    name:  Find fhempy modules 
@@ -63,7 +66,7 @@ jobs:
           for i in "${MODS[@]}"
           do
               REQS=$(jq -cr 'select(.requirements != []).requirements' ./$i/manifest.json)
-              if [ -z $REQS ]; then 
+              if [[ -z $REQS || $i != "google_weather" ]]; then 
                 continue 
               fi
               JSON=$(echo $JSON | jq -c --argjson REQUIREMENTS $REQS --arg M "$i" '.include += [{"module": $M, "requirements": $REQUIREMENTS}]')
@@ -112,6 +115,7 @@ jobs:
           outputs: type=local,dest=./wheelhouse
           cache-from: |
             type=gha,scope=base_stage_cross
+          build-args: FHEMPY_V=${{ needs.prepare_build.outputs.fhempyV }}
 
       #- name: list files in wheelhouse
       #  run: |
@@ -120,7 +124,7 @@ jobs:
       - name: upload wheels as artifact for module ${{matrix.module}}
         uses: actions/upload-artifact@v3
         with: 
-          name: ${{matrix.module}}-armv5
+          name: ${{matrix.module}}
           path: |
             ./wheelhouse/linux_arm_v5/wheels
             -/wheelhouse/linux_arm_v5/requirements.txt
@@ -128,7 +132,7 @@ jobs:
       - name: upload wheels as artifact for module ${{matrix.module}}
         uses: actions/upload-artifact@v3
         with:
-          name: ${{matrix.module}}-amd64
+          name: ${{matrix.module}}
           path: |
             ./wheelhouse/linux_amd64/wheels
             -/wheelhouse/linux_amd64/requirements.txt
