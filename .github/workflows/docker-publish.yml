@@ -65,6 +65,11 @@ jobs:
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
 
+      - name: generate needed directorys
+        run: |
+          mkdir -p ./cache/pip
+          mkdir -p ./cache/wheels
+          
       - name: Cache wheels 
         id: cache-wheels
         uses: actions/cache@v3
@@ -84,6 +89,11 @@ jobs:
           restore-keys: |
             c-pip
             pip
+
+      - name: list files in wheel Cache before running a build
+        run: |
+          du -a ./
+
 
       - name: Build image and run integrationtests (amd64)
         id: build_and_run_integrationtests
