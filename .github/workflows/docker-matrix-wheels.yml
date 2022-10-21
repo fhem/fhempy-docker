@@ -1,0 +1,73 @@
+name: Matrix-Build
+
+on: [push, pull_request]
+
+jobs:
+
+  getVersion:
+    name: Get fhempy version
+    runs-on: ubuntu-latest
+    outputs:
+      fhempyV: ${{steps.split_fhempyV.outputs.result}}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Split fhempy Version
+        id: split_fhempyV
+        run: |
+          echo "result=$(grep '^fhempy' requirements.txt | cut -d '=' -f3)" >> $GITHUB_OUTPUT      
+ 
+  prepare_matrix:
+    name:  Find fhempy modules 
+    needs: getVersion
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{steps.getModules.outputs.matrix}}
+      modDeps: ${{steps.getDependencys.outputs.modDeps}}
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          repository: 'fhempy/fhempy'
+          ref: 'v${{ needs.getVersion.outputs.fhempyV )}}'
+
+      - name: Get module name and prepare Matrix
+        id: getModules
+        run: |
+          echo "matrix=$(find ./ -type f -name manifest.json -exec sh -c 'basename $(dirname {})' \; | jq -cnR '[inputs | select(length>0)]')" >> $GITHUB_OUTPUT
+
+      - name: Save module dependencys
+        id: getDependencys
+        run: |
+          echo "modDeps=$(find ./ -type f -name manifest.json -exec  jq -n 'reduce inputs as $s (.; .[input_filename|rtrimstr("/manifest.json")|ltrimstr("./")] += $s)' {} +)" >> $GITHUB_OUTPUT
+
+  buildwWeels:
+    runs-on: ubuntu-latest
+    needs: prepare_matrix
+    strategy:
+      matrix:
+        fhempyModule: ${{fromJson(needs.prepare_matrix.outputs.matrix)}}
+    steps:
+      - name: check variables
+        run: |
+          echo "${{matrix.fhempyModule}}"
+          echo "${{needs.prepare_matrix.outputs.modDeps}}"
+
+      - name: extract requirement for mod
+        run: |
+          echo ${{matrix.fhempyModule}} | jq -r '.${{matrix.fhempyModule}}.requirements[]'  > ./requirements.txt
+          cat ./requirements.txt
+
+      - name: setup docker for building wheel
+      # needs some special dockerfile
+
+      - name: build dependenys inside docker
+      # inject requirements file generated here 
+
+      - name: upload wheels as artifact for module ${{matrix.fhempyModule}}
+      # uses: actions/upload-artifact@v3
+      #  with:
+      #    path: ./wheelhouse/*.whl
+
