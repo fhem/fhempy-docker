@@ -272,17 +272,60 @@ jobs:
           branch: main
           #unprotect_reviews: true
 
-  container-job:
+  run-container:
     # Containers must run in Linux based operating systems
     runs-on: ubuntu-latest
-    container: ghcr.io/fhem/fhem/fhem-docker:3-bullseye
-    needs: [buildfhempy]
+    
+    needs: [buildfhempy,prepare_build]
     # Service containers to run with `container-job`
     services:
+      fhem: 
+        image: ghcr.io/fhem/fhem/fhem-minimal-docker:3-bullseye
+        ports:
+          - 8083:8083
+        volumes:
+          - ${{ github.workspace }}/opt/fhem:/opt/fhem
+        options: >-
+          -e CPAN_PKGS="Protocol::WebSocket"
+
+          
       fhempy:
         image:  ghcr.io/fhem/fhempy-docker@${{ needs.buildfhempy.outputs.imageid }}
-    steps:
+     #   image:  ghcr.io/fhem/fhempy-docker:releases-1.3-beta
 
-      - run: |
-          ls -
-          ps -aux
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          repository: 'fhempy/fhempy'
+          ref: 'v${{ needs.prepare_build.outputs.fhempyV }}'
+          path: fhempy
+
+
+      - name: copy perl Modules to fhem volume directory
+        run: |
+          sudo cp ./fhempy/FHEM/*.pm ${{ github.workspace }}/opt/fhem/FHEM
+
+      - name: install fhemcl tool
+        run: |
+          wget -O fhemcl.sh https://raw.githubusercontent.com/heinz-otto/fhemcl/master/fhemcl.sh
+          chmod +x fhemcl.sh
+
+      
+      - name: test googleweather
+        run: |
+          echo "::group::Install Modules"
+          echo -e "reload 10_fhempy" | ./fhemcl.sh http://localhost:8083
+          echo -e "reload 10_BindingsIo" | ./fhemcl.sh http://localhost:8083
+          echo "::endgroup::"
+
+          echo "::group::Define fhempy"          
+          echo -e "define fhempy_peer_IP BindingsIo fhempy:15733 fhempy" | ./fhemcl.sh http://localhost:8083
+          echo -e "list  fhempy_peer_IP" | ./fhemcl.sh http://localhost:8083
+          sleep 7
+          echo "::endgroup::"
+
+          echo "::group::Define google_weather"          
+          echo -e "define my_weather fhempy google_weather frankfurt" | ./fhemcl.sh http://localhost:8083
+          sleep 10
+          echo -e "list my_weather" | ./fhemcl.sh http://localhost:8083
+          echo "::endgroup::"
