@@ -65,11 +65,10 @@ jobs:
           JSON='{ "include":[] }'
           for i in "${MODS[@]}"
           do
-              REQS=$(jq -cr 'select(.requirements != []).requirements' ./$i/manifest.json)
-              if [[ -z $REQS || $i != "google_weather" ]]; then 
-                continue 
+              REQS=$(jq -cr 'select(.requirements != []).requirements' ./"$i"/manifest.json)
+              if [[ -n $REQS && $i == @(tuya*|core*|google_weather) ]]; then 
+                JSON=$(echo $JSON | jq -c --argjson REQUIREMENTS $REQS --arg M "$i" '.include += [{"module": $M, "requirements": $REQUIREMENTS}]')
               fi
-              JSON=$(echo $JSON | jq -c --argjson REQUIREMENTS $REQS --arg M "$i" '.include += [{"module": $M, "requirements": $REQUIREMENTS}]')
           done
           #echo $JSON
           echo "matrix=$JSON" >> $GITHUB_OUTPUT
