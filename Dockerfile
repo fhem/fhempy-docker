@@ -10,7 +10,7 @@ COPY ./wheelhouse/ ./wheelhouse
 ARG TARGETOS
 ARG TARGETVARIANT
 ARG TARGETARCH
-RUN find ./wheelhouse -mindepth 2 -maxdepth 2 -regextype posix-extended -type d -not -regex  "^.*/${TARGETOS}_${TARGETARCH}(_${TARGETVARIANT})?.*" -exec rm -rv {} \; \
+RUN find ./wheelhouse -mindepth 2 -maxdepth 2 -regextype posix-extended -type d -not -regex  ".*/${TARGETOS}_${TARGETARCH}(_${TARGETVARIANT})?$" -exec rm -rv {} \; \
     && du -a ./wheelhouse
 
 # Just a stage to export our pip and wheel cache if needed

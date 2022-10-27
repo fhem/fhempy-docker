@@ -15,10 +15,22 @@ RUN pip wheel --wheel-dir /wheels  -r requirements.txt
 
 
 FROM base AS builder
-COPY requirements.txt .
+COPY requirements_mod.txt ./requirements.txt
+
+COPY ./artifacts/ /wheelartifacts
+ARG TARGETOS
+ARG TARGETVARIANT
+ARG TARGETARCH
+RUN find /wheelartifacts -mindepth 2 -maxdepth 2 -regextype posix-extended -type d -not -regex  ".*/${TARGETOS}_${TARGETARCH}(_${TARGETVARIANT})?$" -exec rm -rv {} \; \
+    && mv /wheelartifacts/*/*/wheels/* /wheelartifacts || true \
+    && du -a /wheelartifacts 
+
 
 # Build dependencys as wheels
-RUN pip wheel --wheel-dir /wheels --extra-index-url file:///wheels -r requirements.txt
+RUN pip wheel --wheel-dir /wheels \
+    --find-links file:///wheels \
+    --find-links file:///wheelartifacts \
+    -r requirements.txt
 
 
 # Just a stage to export our wheel 
