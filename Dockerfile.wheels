@@ -21,7 +21,7 @@ RUN find /wheelartifacts -mindepth 2 -maxdepth 2 -regextype posix-extended -type
 
 
 # Build dependencys as wheels
-RUN pip wheel --wheel-dir /wheels \
+RUN pip wheel --no-cache --wheel-dir /wheels \
     --find-links file:///wheelartifacts \
     -r requirements.txt
 
