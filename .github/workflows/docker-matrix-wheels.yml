@@ -40,10 +40,10 @@ jobs:
           cache-to: type=gha,mode=max,scope=base_stage_cross
           cache-from: |
             type=gha,scope=base_stage_cross
-          build-args: FHEMPY_V=${{ steps.split_fhempyV.outputs.result}}
+
 
   prepare_matrix:
-#    name:  Find fhempy modules 
+#   name:  Find fhempy modules 
     needs: prepare_build
     runs-on: ubuntu-latest
     outputs:
@@ -59,10 +59,15 @@ jobs:
         id: getModules
         working-directory: FHEM/bindings/python/fhempy/lib
         run: |
-          MODS=($(find ./ -type f -name manifest.json -exec sh -c 'dirname {}' \;  | sed 's|^./||'))
-          #printf '%s\n' "${MODS[@]}"
-          
           JSON='{ "include":[] }'
+          # Gather requirements from fhempy module
+          readarray -t REQS < <(cat ../../../../../requirements.txt | jq --raw-input -c)
+          for r in "${REQS[@]}"
+          do
+            JSON=$(echo $JSON | jq -c --argjson REQUIREMENTS $r --arg M "fhempy" '.include += [{"module": $M, "requirements": [$REQUIREMENTS] }]')              
+          done
+          readarray -t MODS < <(find ./ -type f -name manifest.json -exec sh -c 'dirname {}' \;  | sed 's|^./||')
+          #printf '%s\n' "${MODS[@]}"
           for i in "${MODS[@]}"
           do
               REQS=$(jq -cr 'select(.requirements != []).requirements' ./"$i"/manifest.json)
@@ -72,6 +77,7 @@ jobs:
           done
           #echo $JSON
           echo "matrix=$JSON" >> $GITHUB_OUTPUT
+        shell: bash
 
   buildwWeels:
     runs-on: ubuntu-latest
@@ -88,8 +94,9 @@ jobs:
       - name: check variables
         run: |
           echo '${{ toJSON(matrix) }}'
+          echo '${{ matrix.module }}'
 
-      - name: overwrite requirement for mod
+      - name: write requirement for mod from matrix input
         run: |
           echo '${{toJSON(matrix.requirements)}}'  | jq --raw-output -e '.[]' > ./requirements_mod.txt
           cat ./requirements_mod.txt
@@ -121,9 +128,11 @@ jobs:
           push: false
           target: export-stage
           outputs: type=local,dest=./wheelhouse
+          cache-to: |
+            type=gha,scope=export_stage_cross-${{ hashFiles('./requirements_mod.txt') }}
           cache-from: |
             type=gha,scope=base_stage_cross
-          build-args: FHEMPY_V=${{ needs.prepare_build.outputs.fhempyV }}
+            type=gha,scope=export_stage_cross-${{ hashFiles('./requirements_mod.txt') }}
 
       #- name: list files in wheelhouse
       #  run: |
