@@ -3,7 +3,7 @@
 # base
 FROM debian:bullseye-slim as base
 
-#RUN --mount=type=bind,target=./wheelhouse,source=.wheelhouse,rw
+#RUN --mount=type=bind,target=./wheelhouse,source=wheelhouse,rw
 COPY ./wheelhouse/ ./wheelhouse
 
 # Delete wheels for other plattforms, we don't need them
