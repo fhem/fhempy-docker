@@ -71,7 +71,8 @@ jobs:
           for i in "${MODS[@]}"
           do
               REQS=$(jq -cr 'select(.requirements != []).requirements' ./"$i"/manifest.json)
-              if [[ -n $REQS && "$i" =~ "object_detection" ]]; then 
+              if [[ -n $REQS  && "$i" =~ "object_detection" ]]; then 
+                
                 JSON=$(echo $JSON | jq -c --argjson REQUIREMENTS $REQS --arg M "$i" '.include += [{"module": $M, "requirements": $REQUIREMENTS}]')
               fi
           done
@@ -109,13 +110,22 @@ jobs:
       #  with:
       #    path: ./artifacts/
 
+
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
+
+      - name: Run Docker on tmpfs
+        uses: sidey79/docker-on-tmpfs@main
+        with:
+          tmpfs_size: 5
+          swap_size: 4
+          swap_location: '/mnt/swapfile'
 
       - name: Setup Docker buildx
         uses: docker/setup-buildx-action@v2
       #  with:
       #   buildkitd-flags: --debug
+
 
       - name: Build wheels 
         uses: docker/build-push-action@v3.2.0
@@ -144,9 +154,11 @@ jobs:
           cache-to: type=gha,scope=export_stage_cross-${{ matrix.module }}_${{ hashFiles('./requirements_mod.txt') }}
           cache-from: type=gha,scope=base_stage_cross
 
-      #- name: list files in wheelhouse
-      #  run: |
-      #    du -a ./wheelhouse
+      - name: list /var/lib/docker/volumes
+        if: always()    
+        run: |
+          sudo du -a /var/lib/docker/volumes
+          sudo df -h | grep docker
 
       - name: upload wheels as artifact for module ${{matrix.module}}
         uses: actions/upload-artifact@v3
@@ -155,6 +167,7 @@ jobs:
           path: |
             ./wheelhouse/*/wheels
             ./wheelhouse/*/requirements.txt
+          retention-days: 7
 
       #- name: upload wheels as artifact for failed module ${{matrix.module}}
       #  if: failure()
