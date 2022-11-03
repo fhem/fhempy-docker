@@ -1,14 +1,37 @@
+# syntax=docker/dockerfile:1
+
 # base
 FROM python:3.9.14 as base
 RUN apt update && \
-    apt install dbus python-dbus-dev rustc build-essential libssl-dev libffi-dev python3-dev cargo -y --no-install-recommends \
+    apt install dbus python-dbus-dev rustc build-essential libssl-dev libffi-dev python3-dev cargo jq git -y --no-install-recommends  \
     && rm -rf /var/lib/apt/lists/*
 
 ARG FHEMPY_V=unset
 ADD https://raw.githubusercontent.com/fhempy/fhempy/v${FHEMPY_V}/requirements.txt /
 
-RUN pip wheel --no-cache-dir --wheel-dir /wheels -r requirements.txt
+RUN mkdir -p /pip
 
+#RUN --mount=type=bind,target/root/.cache/pip,source=./cache/pip,rw
+COPY *./cache/pip /root/.cache/pip
+COPY *./cache/wheels /root/.cache/wheels
+
+# Build dependencys as wheels
+RUN pip wheel --wheel-dir /wheels --find-links file:///root/.cache/wheels -r requirements.txt
+
+# Install fhempy 
+RUN pip install fhempy==${FHEMPY_V} --no-cache --find-links file:///wheels
+
+# gather dynamic loaded dependecys
+COPY src/get-deps.sh /get-deps.sh
+# Build wheels for dependencys
+RUN chmod +x /get-deps.sh && /get-deps.sh
+
+
+
+# Just a stage to export our pip and wheel cache
+FROM scratch AS export-stage
+COPY --from=base /wheels ./wheels
+COPY --from=base /root/.cache/pip ./pip
 
 FROM python:3.9.14-slim as runtime
 
@@ -16,8 +39,10 @@ WORKDIR /usr/src/app
 
 COPY requirements.txt .
 COPY --from=base /wheels /wheels
-#RUN pip install --no-cache /wheels/*
-RUN pip install --no-cache --find-links=/wheels -r requirements.txt
+
+ENV PIP_FIND_LINKS="file:///wheels"
+RUN pip install --no-cache --no-deps -r requirements.txt 
+
 # RUN rm -r /wheels
 
 RUN apt update && \

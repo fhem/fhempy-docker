@@ -24,21 +24,37 @@ runs:
         with:
           images: base
 
+      - name: Cache wheels 
+        id: cache-wheels
+        uses: actions/cache@v3
+        with:
+          path: ./cache/wheels
+          key: wheels
+      
+      - name: Cache pip
+        id: cache-pip
+        uses: actions/cache@v3
+        with:
+          path: ./cache/pip
+          key: pip
+
       - name: Build base image
-        uses: docker/build-push-action@v3.1.1
+        uses: docker/build-push-action@v3.2.0
         id: docker_build_base
         with:
           context: .
           platforms: ${{ inputs.PLATTFORM }}
           push: false
-          load: true
+          load: false
           tags: ${{ steps.meta-base.outputs.tags }}
           labels: ${{ steps.meta-base.outputs.labels }}
           cache-to: type=gha,mode=max,scope=verify_base_${{ inputs.PLATTFORM }}
           cache-from: type=gha,scope=verify_base_${{ inputs.PLATTFORM }}
           build-args: FHEMPY_V=${{ inputs.FHEMPY_VERSION }}
-          target: base
+          target: export-stage
+          outputs: type=local,dest=./cache
             
+
       - name: Extract Docker metadata
         id: meta-runtime
         uses: docker/metadata-action@v4.0.1
@@ -46,7 +62,7 @@ runs:
           images: runtime
 
       - name: Build for integration test amd64 
-        uses: docker/build-push-action@v3.1.1
+        uses: docker/build-push-action@v3.2.0
         id: docker_build_runtime
         with:
           context: .
@@ -66,3 +82,8 @@ runs:
         shell: bash
         run: |
           ./scripts/test-integration.sh ${{ fromJSON(steps.meta-runtime.outputs.json).tags[0] }}
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: amd64-wheels
+          path: ./cache/wheels
