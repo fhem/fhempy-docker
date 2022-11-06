@@ -3,8 +3,9 @@
 # base
 FROM python:3.9.14 as base
 RUN apt update && \
-    apt install dbus python-dbus-dev rustc build-essential libssl-dev libffi-dev python3-dev cargo cmake ninja-build -y --no-install-recommends  \
+    apt install dbus python-dbus-dev build-essential libssl-dev libffi-dev python3-dev -y --no-install-recommends  \
     && rm -rf /var/lib/apt/lists/*
+
 ENV CARGO_NET_GIT_FETCH_WITH_CLI=true
 
 
@@ -24,6 +25,12 @@ COPY requirements_mod.txt ./requirements.txt
 #    find /wheelartifacts -mindepth 2 -maxdepth 2 -regextype posix-extended -type d -not -regex  ".*/${TARGETOS}_${TARGETARCH}(_${TARGETVARIANT})?$" -exec rm -rv {} \; \
 #    && mv /wheelartifacts/*/*/wheels/* /wheelartifacts || true \
 #    && du -a /wheelartifacts \
+
+ARG PKGS=python3-dev
+RUN apt update && \
+    apt install $PKGS -y --no-install-recommends  \
+    && rm -rf /var/lib/apt/lists/*
+
 RUN pip wheel --no-cache --wheel-dir /wheels \
 #    --find-links file:///wheelartifacts \
     -r requirements.txt

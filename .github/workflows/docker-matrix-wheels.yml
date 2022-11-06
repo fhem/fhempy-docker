@@ -1,11 +1,17 @@
 name: Matrix-build-wheels
 
 on:
+  pull_request:
+    branches:
+      - main
   push:
     branches:
       - main
       - 'releases/**'
-
+  release:
+    types: 
+      - published
+      - released
 
 jobs:
   prepare_build:
@@ -64,17 +70,27 @@ jobs:
           readarray -t REQS < <(cat ../../../../../requirements.txt | jq --raw-input -c)
           for r in "${REQS[@]}"
           do
-            JSON=$(echo $JSON | jq -c --argjson REQUIREMENTS $r --arg M "fhempy" '.include += [{"module": $M, "requirements": [$REQUIREMENTS] }]')              
+                JSON=$(echo $JSON | jq -c --argjson REQUIREMENTS $r --arg PACKAGES "cargo rustc" --arg M "fhempy" '.include += [{"module": $M, "requirements": [$REQUIREMENTS], "PKGS" : $PACKAGES} ]')
           done
           readarray -t MODS < <(find ./ -type f -name manifest.json -exec sh -c 'dirname {}' \;  | sed 's|^./||')
           #printf '%s\n' "${MODS[@]}"
           for i in "${MODS[@]}"
           do
               REQS=$(jq -cr 'select(.requirements != []).requirements' ./"$i"/manifest.json)
-              if [[ -n $REQS  && "$i" =~ "object_detection" ]]; then 
-                
-                JSON=$(echo $JSON | jq -c --argjson REQUIREMENTS $REQS --arg M "$i" '.include += [{"module": $M, "requirements": $REQUIREMENTS}]')
+              if [[ -z $REQS ]]; then
+                continue
               fi
+              ADD_PKGS=""
+              # skip problematic modules until solution found
+              if [[ "$i" =~ "object_detection" ]]; then 
+                continue 
+              fi
+              if [[ "$i" =~ ^(eq3bt|gfprobt|ble_reset|blue_connect|object_detection)$ ]]; then 
+                ADD_PKGS="cmake ninja-build"
+              elif [[ "$i" =~ ^(xiaomi_gateway3_device|pyit600|esphome)$ ]]; then 
+                ADD_PKGS="rustc cargo"
+              fi
+              JSON=$(echo $JSON | jq -c --argjson REQUIREMENTS $REQS --arg PACKAGES "$ADD_PKGS" --arg M "$i" '.include += [{"module": $M, "requirements": $REQUIREMENTS, "PKGS" : $PACKAGES} ]')
           done
           #echo $JSON
           echo "matrix=$JSON" >> $GITHUB_OUTPUT
@@ -101,23 +117,13 @@ jobs:
           echo '${{toJSON(matrix.requirements)}}'  | jq --raw-output -e '.[]' > ./requirements_mod.txt
           cat ./requirements_mod.txt
 
-      #- name: create artifact directory
-      #  run: |
-      #    mkdir -p ./artifacts/mod/arch/wheels
-
-      #- name: fetch our artifacts
-      #  uses: actions/download-artifact@v3
-      #  with:
-      #    path: ./artifacts/
-
-
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
 
       - name: Run Docker on tmpfs
         uses: sidey79/docker-on-tmpfs@main
         with:
-          tmpfs_size: 5
+          tmpfs_size: 6
           swap_size: 4
           swap_location: '/mnt/swapfile'
 
@@ -140,6 +146,8 @@ jobs:
           cache-from: |
             type=gha,scope=base_stage_cross
             type=gha,scope=export_stage_cross-${{ matrix.module }}_${{ hashFiles('./requirements_mod.txt') }}
+          build-args: |
+            PKGS=${{ matrix.PKGS }}
 
       - name: Build wheels again if failed wo gha cache
         if: failure()
@@ -154,12 +162,6 @@ jobs:
           cache-to: type=gha,scope=export_stage_cross-${{ matrix.module }}_${{ hashFiles('./requirements_mod.txt') }}
           cache-from: type=gha,scope=base_stage_cross
 
-      - name: list /var/lib/docker/volumes
-        if: always()    
-        run: |
-          sudo du -a /var/lib/docker/volumes
-          sudo df -h | grep docker
-
       - name: upload wheels as artifact for module ${{matrix.module}}
         uses: actions/upload-artifact@v3
         with: 
@@ -169,18 +171,6 @@ jobs:
             ./wheelhouse/*/requirements.txt
           retention-days: 7
 
-      #- name: upload wheels as artifact for failed module ${{matrix.module}}
-      #  if: failure()
-      #  uses: actions/upload-artifact@v3
-      #  with: 
-      #    name: failed-${{matrix.module}}
-      #    path: |
-      #      ./wheelhouse/*/wheels
-      #      ./wheelhouse/*/requirements.txt
-
-
-
-    
 
   buildfhempy:
     needs: [prepare_build, buildwWeels]
@@ -255,6 +245,15 @@ jobs:
         uses: docker/metadata-action@v4.1.1
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          flavor: |
+             latest= ${{ fromJSON('["auto", "false"]')[github.event.release.prerelease == 1] }}
+          tags: |
+            type=ref,enable=true,priority=600,prefix=pr-,suffix=,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}},enable=${{ github.event.release.prerelease == 0 }}
+            type=ref,event=branch
+            type=ref,event=pr
+
 
       # Build and push Docker image with Buildx (don't push if it is not a release)
       # https://github.com/docker/build-push-action
@@ -338,11 +337,9 @@ jobs:
           - ${{ github.workspace }}/opt/fhem:/opt/fhem
         options: >-
           -e CPAN_PKGS="Protocol::WebSocket"
-
-          
+         
       fhempy:
         image:  ghcr.io/fhem/fhempy-docker@${{ needs.buildfhempy.outputs.imageid }}
-     #   image:  ghcr.io/fhem/fhempy-docker:releases-1.3-beta
 
     steps:
       - uses: actions/checkout@v3
