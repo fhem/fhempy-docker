@@ -87,7 +87,7 @@ jobs:
               fi
               if [[ "$i" =~ ^(eq3bt|gfprobt|ble_reset|blue_connect|object_detection)$ ]]; then 
                 ADD_PKGS="cmake ninja-build"
-              elif [[ "$i" =~ ^(miio|xiaomi_gateway3_device|pyit600|esphome)$ ]]; then 
+              elif [[ "$i" =~ ^(seatconnect|skodaconnect|miio|xiaomi_gateway3|xiaomi_gateway3_device|pyit600|esphome)$ ]]; then 
                 ADD_PKGS="rustc cargo"
               fi
               JSON=$(echo $JSON | jq -c --argjson REQUIREMENTS $REQS --arg PACKAGES "$ADD_PKGS" --arg M "$i" '.include += [{"module": $M, "requirements": $REQUIREMENTS, "PKGS" : $PACKAGES} ]')
