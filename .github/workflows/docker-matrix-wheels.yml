@@ -36,10 +36,10 @@ jobs:
 
       - name: Build builder stage
         id: build_base_cross
-        uses: docker/build-push-action@v3.2.0
+        uses: docker/build-push-action@v3.3.0
         with:
           context: .
-          file: Dockerfile.wheels
+          file: Dockerfile
           platforms: linux/amd64,linux/arm/v6,linux/arm/v7
           push: false
           target: base
@@ -67,11 +67,11 @@ jobs:
         run: |
           JSON='{ "include":[] }'
           # Gather requirements from fhempy module
-          readarray -t REQS < <(cat ../../../../../requirements.txt | jq --raw-input -c)
-          for r in "${REQS[@]}"
-          do
-                JSON=$(echo $JSON | jq -c --argjson REQUIREMENTS $r --arg PACKAGES "cargo rustc" --arg M "fhempy" '.include += [{"module": $M, "requirements": [$REQUIREMENTS], "PKGS" : $PACKAGES} ]')
-          done
+          #readarray -t REQS < <(cat ../../../../../requirements.txt | jq --raw-input -c)
+          #for r in "${REQS[@]}"
+          #do
+          #      JSON=$(echo $JSON | jq -c --argjson REQUIREMENTS $r --arg PACKAGES "cargo rustc" --arg M "fhempy" '.include += [{"module": $M, "requirements": [$REQUIREMENTS], "PKGS" : $PACKAGES} ]')
+          #done
           readarray -t MODS < <(find ./ -type f -name manifest.json -exec sh -c 'dirname {}' \;  | sed 's|^./||')
           #printf '%s\n' "${MODS[@]}"
           for i in "${MODS[@]}"
@@ -87,7 +87,7 @@ jobs:
               fi
               if [[ "$i" =~ ^(eq3bt|gfprobt|ble_reset|blue_connect|object_detection)$ ]]; then 
                 ADD_PKGS="cmake ninja-build"
-              elif [[ "$i" =~ ^(seatconnect|skodaconnect|miio|xiaomi_gateway3|xiaomi_gateway3_device|pyit600|esphome)$ ]]; then 
+              elif [[ "$i" =~ ^(seatconnect|skodaconnect|miio|xiaomi_gateway3|xiaomi_gateway3_device|pyit600|esphome|tuya)$ ]]; then 
                 ADD_PKGS="rustc cargo"
               fi
               JSON=$(echo $JSON | jq -c --argjson REQUIREMENTS $REQS --arg PACKAGES "$ADD_PKGS" --arg M "$i" '.include += [{"module": $M, "requirements": $REQUIREMENTS, "PKGS" : $PACKAGES} ]')
@@ -96,9 +96,20 @@ jobs:
           echo "matrix=$JSON" >> $GITHUB_OUTPUT
         shell: bash
 
-  buildwWeels:
+  buildImages:
     runs-on: ubuntu-latest
     needs: [prepare_build, prepare_matrix]
+    permissions:
+      contents: write
+      packages: write
+      # This is used to complete the identity challenge
+      # with sigstore/fulcio when running outside of PRs.
+      id-token: write
+    env:
+      # Use docker.io for Docker Hub if empty
+      REGISTRY: ghcr.io
+      # github.repository as <account>/<repo>
+      IMAGE_NAME: ${{ github.repository }}
     strategy:
       matrix:
         ${{fromJson(needs.prepare_matrix.outputs.matrix)}}
@@ -117,9 +128,6 @@ jobs:
           echo '${{toJSON(matrix.requirements)}}'  | jq --raw-output -e '.[]' > ./requirements_mod.txt
           cat ./requirements_mod.txt
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
-
       - name: Run Docker on tmpfs
         uses: sidey79/docker-on-tmpfs@main
         with:
@@ -127,72 +135,41 @@ jobs:
           swap_size: 4
           swap_location: '/mnt/swapfile'
 
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
       - name: Setup Docker buildx
         uses: docker/setup-buildx-action@v2
-      #  with:
-      #   buildkitd-flags: --debug
 
+      - name: Extract Docker metadata
+        id: meta-it
+        uses: docker/metadata-action@v4.1.1
+        with:
+          images: runtime
 
-      - name: Build wheels 
-        uses: docker/build-push-action@v3.2.0
+      - name: Build for integration test 
+        id: build-it
+        uses: docker/build-push-action@v3.3.0
         with:
           context: .
-          file: Dockerfile.wheels
-          platforms: linux/amd64,linux/arm/v6,linux/arm/v7
+          file: Dockerfile
+          platforms: linux/amd64
           push: false
-          target: export-stage
-          outputs: type=local,dest=./wheelhouse
-          cache-to: type=gha,scope=export_stage_cross-${{ matrix.module }}_${{ hashFiles('./requirements_mod.txt') }}
-          cache-from: |
-            type=gha,scope=base_stage_cross
-            type=gha,scope=export_stage_cross-${{ matrix.module }}_${{ hashFiles('./requirements_mod.txt') }}
+          load: true
+          target: runtime
+          cache-to: type=gha,scope=runtime-stage_cross-${{ matrix.module }}_${{ hashFiles('./requirements_mod.txt') }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          #cache-from: |
+          #  type=gha,scope=runtime-stage_cross
+          #  type=gha,scope=runtime-stage_cross-${{ matrix.module }}_${{ hashFiles('./requirements_mod.txt') }}
           build-args: |
             PKGS=${{ matrix.PKGS }}
 
-      - name: Build wheels again if failed wo gha cache armv7 only
-        if: failure()
-        uses: docker/build-push-action@v3.2.0
-        with:
-          context: .
-          file: Dockerfile.wheels
-          platforms: linux/arm/v7
-          push: false
-          target: export-stage
-          outputs: type=local,dest=./wheelhouse
-          cache-to: type=gha,scope=export_stage_cross-${{ matrix.module }}_${{ hashFiles('./requirements_mod.txt') }}
-          cache-from: type=gha,scope=base_stage_cross
-          build-args: |
-            PKGS=${{ matrix.PKGS }}
-
-      - name: upload wheels as artifact for module ${{matrix.module}}
-        uses: actions/upload-artifact@v3
-        with: 
-          name: ${{matrix.module}}
-          path: |
-            ./wheelhouse/*/wheels
-            ./wheelhouse/*/requirements.txt
-          retention-days: 7
-
-
-  buildfhempy:
-    needs: [prepare_build, buildwWeels]
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      packages: write
-      # This is used to complete the identity challenge
-      # with sigstore/fulcio when running outside of PRs.
-      id-token: write
-    env:
-      # Use docker.io for Docker Hub if empty
-      REGISTRY: ghcr.io
-      # github.repository as <account>/<repo>
-      IMAGE_NAME: ${{ github.repository }}
-    outputs:
-      imageid: ${{ steps.docker_build_runtime_cross.outputs.imageid }}
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+      - name: Run integration tests
+        shell: bash
+        run: |
+          ./scripts/test-integration.sh ${{ steps.build-it.outputs.imageid }}
 
       - name: Find image String
         id: extract_image
@@ -205,33 +182,12 @@ jobs:
         run: |
             sed -e "s/{FHEMPY_VERSION}/${{ needs.prepare_build.outputs.fhempyV }}/" -e "s/{PYTHON_VERSION}/${{ steps.extract_image.outputs.image_version}}/" -e "s/{DEBIAN_RELEASE}/buster/" -e s/{IMAGE_TAG}/${{ github.ref_name }}/ < README.tmpl > README.md
 
-      # Install the cosign tool except on PR
-      # https://github.com/sigstore/cosign-installer
       - name: Install cosign
         if: github.event_name == 'release'
         uses: sigstore/cosign-installer@v2.8.1
         with:
           cosign-release: 'v1.9.0'
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
-
-      - name: fetch our artifacts
-        uses: actions/download-artifact@v3
-        with:
-          path: ./wheelhouse/
-
-      - name: list files in wheel Cache before running a build
-        run: |
-          du -a ./wheelhouse/
-
-      - name: Build image and run integrationtests (amd64)
-        id: build_and_run_integrationtests
-        uses: ./.github/actions/integrationtest
-        with:
-           PLATTFORM: linux/amd64
-           FHEMPY_VERSION: ${{ needs.prepare_build.outputs.fhempyV }}
-
+ 
       # Login against a Docker registry if it is a release
       # https://github.com/docker/login-action
       - name: Log into registry ${{ env.REGISTRY }}
@@ -246,7 +202,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v4.1.1
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}_${{ matrix.module }}
           flavor: |
              latest= ${{ fromJSON('["auto", "false"]')[github.event.release.prerelease == 1] }}
           tags: |
@@ -255,42 +211,24 @@ jobs:
             type=semver,pattern={{major}},enable=${{ github.event.release.prerelease == 0 }}
             type=ref,event=branch
             type=ref,event=pr
-
-
-      # Build and push Docker image with Buildx (don't push if it is not a release)
-      # https://github.com/docker/build-push-action
-      - name: Build base image for all plattforms
-        id: build_base_cross
-        uses: docker/build-push-action@v3.2.0
-        with:
-          context: .
-          platforms: linux/amd64,linux/arm/v6,linux/arm/v7
-          push: false
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          build-args: FHEMPY_V=${{ needs.prepare_build.outputs.fhempyV }}
-          target: base
-
-      #- name: list files in wheel Cache
-      #  run: |
-      #    du -a ./wheelhouse
-
+      
       - name: Build and push Docker image for all plattforms
-        uses: docker/build-push-action@v3.2.0
+        uses: docker/build-push-action@v3.3.0
         id: docker_build_runtime_cross
         with:
           context: .
-          platforms: linux/arm/v7
+          platforms: linux/arm/v7,linux/amd64
           push: true # ${{ github.event_name == 'release' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: | 
-            type=gha,scope=verify_runtime_linux/amd64
-            type=gha,scope=publish_runtime_cross
-          cache-to: type=gha,mode=max,scope=publish_runtime_cross
-          build-args: FHEMPY_V=${{ needs.prepare_build.outputs.fhempyV }}
           target: runtime
-
+          cache-to: type=gha,scope=runtime-stage_cross-${{ matrix.module }}_${{ hashFiles('./requirements_mod.txt') }}
+          cache-from: |
+            type=gha,scope=runtime-stage_cross
+            type=gha,scope=runtime-stage_cross-${{ matrix.module }}_${{ hashFiles('./requirements_mod.txt') }}
+          build-args: |
+            PKGS=${{ matrix.PKGS }}
+          
       - name: show image details
         run: | 
           echo ${{ steps.docker_build_runtime_cross.outputs.imageid }}
@@ -323,59 +261,3 @@ jobs:
           token: ${{ secrets.BOT_PUSH_TOKEN }}
           branch: main
           #unprotect_reviews: true
-
-  run-container:
-    # Containers must run in Linux based operating systems
-    runs-on: ubuntu-latest
-    
-    needs: [buildfhempy,prepare_build]
-    # Service containers to run with `container-job`
-    services:
-      fhem: 
-        image: ghcr.io/fhem/fhem/fhem-minimal-docker:3-bullseye
-        ports:
-          - 8083:8083
-        volumes:
-          - ${{ github.workspace }}/opt/fhem:/opt/fhem
-        options: >-
-          -e CPAN_PKGS="Protocol::WebSocket"
-         
-      fhempy:
-        image:  ghcr.io/fhem/fhempy-docker@${{ needs.buildfhempy.outputs.imageid }}
-
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          repository: 'fhempy/fhempy'
-          ref: 'v${{ needs.prepare_build.outputs.fhempyV }}'
-          path: fhempy
-
-
-      - name: copy perl Modules to fhem volume directory
-        run: |
-          sudo cp ./fhempy/FHEM/*.pm ${{ github.workspace }}/opt/fhem/FHEM
-
-      - name: install fhemcl tool
-        run: |
-          wget -O fhemcl.sh https://raw.githubusercontent.com/heinz-otto/fhemcl/master/fhemcl.sh
-          chmod +x fhemcl.sh
-
-      
-      - name: test googleweather
-        run: |
-          echo "::group::Install Modules"
-          echo -e "reload 10_fhempy" | ./fhemcl.sh http://localhost:8083
-          echo -e "reload 10_BindingsIo" | ./fhemcl.sh http://localhost:8083
-          echo "::endgroup::"
-
-          echo "::group::Define fhempy"          
-          echo -e "define fhempy_peer_IP BindingsIo fhempy:15733 fhempy" | ./fhemcl.sh http://localhost:8083
-          echo -e "list  fhempy_peer_IP" | ./fhemcl.sh http://localhost:8083
-          sleep 7
-          echo "::endgroup::"
-
-          echo "::group::Define google_weather"          
-          echo -e "define my_weather fhempy google_weather frankfurt" | ./fhemcl.sh http://localhost:8083
-          sleep 10
-          echo -e "list my_weather" | ./fhemcl.sh http://localhost:8083
-          echo "::endgroup::"

@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # base
-FROM python:3.9.14 as base
+FROM python:3.9.16 as base
 RUN apt update && \
     apt install dbus python-dbus-dev build-essential libssl-dev libffi-dev python3-dev -y --no-install-recommends  \
     && rm -rf /var/lib/apt/lists/*
@@ -34,6 +34,11 @@ RUN apt update && \
 RUN pip wheel --no-cache --wheel-dir /wheels \
 #    --find-links file:///wheelartifacts \
     -r requirements.txt
+
+
+FROM scratch AS image-stage
+COPY --from=builder /wheels ./wheels
+COPY --from=builder requirements.txt ./
 
 
 # Just a stage to export our wheel 
