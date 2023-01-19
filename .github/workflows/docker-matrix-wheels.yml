@@ -36,7 +36,7 @@ jobs:
 
       - name: Build builder stage
         id: build_base_cross
-        uses: docker/build-push-action@v3.3.0
+        uses: docker/build-push-action@v3.2.0
         with:
           context: .
           file: Dockerfile
@@ -149,7 +149,7 @@ jobs:
 
       - name: Build for integration test 
         id: build-it
-        uses: docker/build-push-action@v3.3.0
+        uses: docker/build-push-action@v3.2.0
         with:
           context: .
           file: Dockerfile
@@ -213,7 +213,7 @@ jobs:
             type=ref,event=pr
       
       - name: Build and push Docker image for all plattforms
-        uses: docker/build-push-action@v3.3.0
+        uses: docker/build-push-action@v3.2.0
         id: docker_build_runtime_cross
         with:
           context: .
