@@ -24,6 +24,8 @@ RUN apt update && \
 
 COPY requirements_mod.txt ./requirements.txt
 
+ARG CARGO_NET_GIT_FETCH_WITH_CLI=true
+ARG CRYPTOGRAPHY_DONT_BUILD_RUST=1
 
 RUN export RUSTFLAGS=" -C lto=no" && export CARGO_BUILD_TARGET="$(rustc -vV | sed -n 's|host: ||p')" && pip install --no-cache -r requirements.txt 
 # RUSTFLAGS += -C linker=$(DEB_HOST_GNU_TYPE)-gcc
