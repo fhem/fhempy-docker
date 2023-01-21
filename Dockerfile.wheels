@@ -27,6 +27,7 @@ COPY requirements_mod.txt ./requirements.txt
 #    && du -a /wheelartifacts \
 
 ARG PKGS=python3-dev
+ARG CRYPTOGRAPHY_DONT_BUILD_RUST=1
 RUN apt update && \
     apt install $PKGS -y --no-install-recommends  \
     && rm -rf /var/lib/apt/lists/*
