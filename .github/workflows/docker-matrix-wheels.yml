@@ -33,6 +33,10 @@ jobs:
 
       - name: Setup Docker buildx
         uses: docker/setup-buildx-action@v2
+        with:
+          driver-opts: |
+            image=moby/buildkit:v0.10.6
+
 
       - name: Build builder stage
         id: build_base_cross
@@ -140,6 +144,9 @@ jobs:
 
       - name: Setup Docker buildx
         uses: docker/setup-buildx-action@v2
+        with:
+          driver-opts: |
+            image=moby/buildkit:v0.10.6
 
       - name: Extract Docker metadata
         id: meta-it
@@ -160,7 +167,8 @@ jobs:
           cache-to: type=gha,scope=runtime-stage_cross-${{ matrix.module }}_${{ hashFiles('./requirements_mod.txt') }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          #cache-from: |
+          cache-from: |
+            type=gha,scope=base_stage_cross
           #  type=gha,scope=runtime-stage_cross
           #  type=gha,scope=runtime-stage_cross-${{ matrix.module }}_${{ hashFiles('./requirements_mod.txt') }}
           build-args: |
@@ -224,6 +232,7 @@ jobs:
           target: runtime
           cache-to: type=gha,scope=runtime-stage_cross-${{ matrix.module }}_${{ hashFiles('./requirements_mod.txt') }}
           cache-from: |
+            type=gha,scope=base_stage_cross
             type=gha,scope=runtime-stage_cross
             type=gha,scope=runtime-stage_cross-${{ matrix.module }}_${{ hashFiles('./requirements_mod.txt') }}
           build-args: |
