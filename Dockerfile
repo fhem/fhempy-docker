@@ -1,5 +1,5 @@
 # base
-FROM python:3.9.14 as base
+FROM python:3.11.0 as base
 RUN apt update && \
     apt install dbus python-dbus-dev rustc build-essential libssl-dev libffi-dev python3-dev cargo -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
@@ -10,7 +10,7 @@ ADD https://raw.githubusercontent.com/fhempy/fhempy/v${FHEMPY_V}/requirements.tx
 RUN pip wheel --no-cache-dir --wheel-dir /wheels -r requirements.txt
 
 
-FROM python:3.9.14-slim as runtime
+FROM python:3.11.0-slim as runtime
 
 WORKDIR /usr/src/app
 
