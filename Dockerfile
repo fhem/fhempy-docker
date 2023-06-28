@@ -3,6 +3,7 @@
 # base
 FROM debian:bullseye-slim as base
 
+
 #RUN --mount=type=bind,target=./wheelhouse,source=wheelhouse,rw
 COPY ./wheelhouse/ ./wheelhouse
 
@@ -12,6 +13,7 @@ ARG TARGETVARIANT
 ARG TARGETARCH
 RUN find ./wheelhouse -mindepth 2 -maxdepth 2 -regextype posix-extended -type d -not -regex  ".*/${TARGETOS}_${TARGETARCH}(_${TARGETVARIANT})?$" -exec rm -rv {} \; \
     && du -a ./wheelhouse
+
 
 # Just a stage to export our pip and wheel cache if needed
 FROM scratch AS export-stage
