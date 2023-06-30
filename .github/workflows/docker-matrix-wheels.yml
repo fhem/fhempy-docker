@@ -82,7 +82,7 @@ jobs:
               fi
               ADD_PKGS=""
               # skip problematic modules until solution found
-              if [[ "$i" =~ ^(object_detection|esphome)$ ]]; then 
+              if [[ "$i" =~ ^(object_detection|esphome|homekit)$ ]]; then 
                 continue 
               fi
               if [[ "$i" =~ ^(eq3bt|gfprobt|ble_reset|blue_connect|object_detection)$ ]]; then 
