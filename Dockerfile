@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # base fhempy will be installed
-FROM python:3.10.12 as base
+FROM python:3.9.17 as base
 
 COPY requirements.txt ./requirements.txt
 
