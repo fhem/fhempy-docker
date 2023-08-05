@@ -10,7 +10,7 @@ RUN apt update && \
     && rm -rf /var/lib/apt/lists/* 
 
 RUN pip install --no-cache -r requirements.txt 
-RUN pip install --no-cache cython<3.0
+RUN pip install --no-cache "Cython<3.0"
 
 
 # image for fhempy (final stage) modules will be installed here
