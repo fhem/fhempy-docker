@@ -144,13 +144,13 @@ jobs:
           swap_location: '/mnt/swapfile'
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
+        uses: docker/setup-qemu-action@v3
 
       - name: Setup Docker buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
         with:
           driver-opts: |
-            image=moby/buildkit:v0.10.6
+            image=moby/buildkit:v0.12.4
 
       - name: Extract Docker metadata
         id: meta-it
@@ -160,7 +160,7 @@ jobs:
 
       - name: Build for integration test 
         id: build-it
-        uses: docker/build-push-action@v3.2.0
+        uses: docker/build-push-action@v5.1.0
         with:
           context: .
           file: Dockerfile
@@ -168,7 +168,7 @@ jobs:
           push: false
           load: true
           target: runtime
-          cache-to: type=gha,scope=runtime-stage_cross-${{ matrix.module }}_${{ hashFiles('./requirements_mod.txt') }}
+          cache-to: type=gha,scope=runtime-stage_cross-${{ matrix.module }}_${{ hashFiles('./requirements_mod.txt') }},ignore-error=true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: |
