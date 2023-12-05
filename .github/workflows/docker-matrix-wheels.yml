@@ -99,7 +99,7 @@ jobs:
               fi
               if [[ "$i" =~ ^(eq3bt|gfprobt|ble_reset|blue_connect|object_detection)$ ]]; then 
                 ADD_PKGS="cmake ninja-build"
-              elif [[ "$i" =~ ^(seatconnect|skodaconnect|miio|xiaomi_gateway3|xiaomi_gateway3_device|pyit600|esphome|tuya)$ ]]; then 
+              elif [[ "$i" =~ ^(seatconnect|skodaconnect|miio|xiaomi_gateway3|xiaomi_gateway3_device|pyit600|esphome|tuya|homekit)$ ]]; then 
                 ADD_PKGS="rustc cargo"
               fi
               JSON=$(echo $JSON | jq -c --argjson REQUIREMENTS $REQS --arg PACKAGES "$ADD_PKGS" --arg M "$i" '.include += [{"module": $M, "requirements": $REQUIREMENTS, "PKGS" : $PACKAGES} ]')
@@ -177,8 +177,8 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: |
             type=gha,scope=base_stage_cross
+            type=gha,scope=runtime-stage_cross-${{ matrix.module }}_${{ hashFiles('./requirements_mod.txt') }}
           #  type=gha,scope=runtime-stage_cross
-          #  type=gha,scope=runtime-stage_cross-${{ matrix.module }}_${{ hashFiles('./requirements_mod.txt') }}
           build-args: |
             PKGS=${{ matrix.PKGS }}
 
