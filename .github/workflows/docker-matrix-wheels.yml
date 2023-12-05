@@ -35,7 +35,7 @@ jobs:
         uses: docker/setup-buildx-action@v2
         with:
           driver-opts: |
-            image=moby/buildkit:v0.10.6
+            image=moby/buildkit:v0.12.4
 
 
       - name: Build builder stage
@@ -81,6 +81,11 @@ jobs:
           for i in "${MODS[@]}"
           do
               REQS=$(jq -cr 'select(.requirements != []).requirements' ./"$i"/manifest.json)
+              ## Just for testing the pipeline with a subset of modules
+              ## if ! [[ "$i" =~ ^(googlecast|geizhals|fhem_forum|bt_presence)$ ]]; then
+              ##   continue
+              ## fi
+              ## End of test
               if [[ -z $REQS ]]; then
                 continue
               fi
@@ -187,17 +192,6 @@ jobs:
         run: |
           ./scripts/test-integration.sh ${{ steps.build-it.outputs.imageid }}
 
-      - name: Find image String
-        id: extract_image
-        run: |
-           echo "image_name=$(grep -m 1 '^FROM' Dockerfile | cut -d ' ' -f2 | cut -d ':' -f1)" >> $GITHUB_OUTPUT
-           echo "image_version=$(grep -m 1 '^FROM' Dockerfile | cut -d ' ' -f2 | cut -d ':' -f2)" >> $GITHUB_OUTPUT
-      
-      - name: Update docs
-        if: ${{ github.event_name == 'release' }}
-        run: |
-            sed -e "s/{FHEMPY_VERSION}/${{ needs.prepare_build.outputs.fhempyV }}/" -e "s/{PYTHON_VERSION}/${{ steps.extract_image.outputs.image_version}}/" -e "s/{DEBIAN_RELEASE}/buster/" -e s/{IMAGE_TAG}/${{ github.ref_name }}/ < README.tmpl > README.md
-
       - name: Install cosign
         if: github.event_name == 'release'
         uses: sigstore/cosign-installer@v2.8.1
@@ -227,6 +221,8 @@ jobs:
             type=semver,pattern={{major}},enable=${{ github.event.release.prerelease == 0 }}
             type=ref,event=branch
             type=ref,event=pr
+          labels: |
+            org.opencontainers.image.title=${{ env.IMAGE_NAME }}_${{ matrix.module }}
       
       - name: Build and push Docker image for all plattforms
         uses: docker/build-push-action@v3.2.0
@@ -234,11 +230,11 @@ jobs:
         with:
           context: .
           platforms: linux/arm/v7,linux/amd64
-          push: true # ${{ github.event_name == 'release' }}
+          push: ${{ github.event_name == 'release' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           target: runtime
-          cache-to: type=gha,scope=runtime-stage_cross-${{ matrix.module }}_${{ hashFiles('./requirements_mod.txt') }}
+          cache-to: type=gha,scope=runtime-stage_cross-${{ matrix.module }}_${{ hashFiles('./requirements_mod.txt') }},mode=max
           cache-from: |
             type=gha,scope=base_stage_cross
             type=gha,scope=runtime-stage_cross
@@ -248,8 +244,9 @@ jobs:
           
       - name: show image details
         run: | 
-          echo ${{ steps.docker_build_runtime_cross.outputs.imageid }}
-          echo ${{ steps.docker_build_runtime_cross.outputs.digest }}
+          echo "${{ steps.docker_build_runtime_cross.outputs.imageid }}"
+          echo "${{ steps.docker_build_runtime_cross.outputs.digest }}"
+          echo "${{ steps.docker_build_runtime_cross.outputs.metadata }}"
       # Sign the resulting Docker image digest except on PRs.
       # This will only write to the public Rekor transparency log when the Docker
       # repository is public to avoid leaking data.  If you would like to publish
@@ -262,7 +259,50 @@ jobs:
         # This step uses the identity token to provision an ephemeral certificate
         # against the sigstore community Fulcio instance.
         run: echo "${{ steps.meta.outputs.tags }}" | xargs -I {} cosign sign {}@${{ steps.docker_build_runtime_cross.outputs.digest }}
+
+      - name: Create Job Summary
+        run: |
+          echo "### Image report for : ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "| Module | Image name  |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|----------------------------------------------------------------------|" >> $GITHUB_STEP_SUMMARY
+          echo "| ${{ matrix.module }} | ${{ fromJSON(steps.docker_build_runtime_cross.outputs.metadata)['image.name'] }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| ${{ matrix.module }} | ${{ fromJSON(steps.docker_build_runtime_cross.outputs.metadata)['image.name'] }} |" > matrix_result.md
       
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ hashFiles('matrix_result.md') || 'none' }}
+          path: matrix_result.md
+          if-no-files-found: warn
+
+  check-matrix:
+    runs-on: ubuntu-latest
+    needs: [buildImages,prepare_build]
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      
+      - uses: actions/download-artifact@v3
+
+      - name: Find image String
+        id: extract_image
+        run: |
+          echo "image_name=$(grep -m 1 '^FROM' Dockerfile | cut -d ' ' -f2 | cut -d ':' -f1)" >> $GITHUB_OUTPUT
+          echo "image_version=$(grep -m 1 '^FROM' Dockerfile | cut -d ' ' -f2 | cut -d ':' -f2)" >> $GITHUB_OUTPUT
+         
+      - name: Update docs (readme.md)
+        run: |
+          cat */matrix_result.md  > modules.md
+          IMAGE_LIST=$(cat modules.md)
+          echo "$IMAGE_LIST"
+          ESCAPED_DATA="$(echo "${IMAGE_LIST}" | sed 's/\n/\\n/g')"
+          echo "--------"
+          echo "$ESCAPED_DATA"
+          sed -e "s/{FHEMPY_VERSION}/${{ needs.prepare_build.outputs.fhempyV }}/" -e "s/{PYTHON_VERSION}/${{ steps.extract_image.outputs.image_version}}/" -e "s/{DEBIAN_RELEASE}/buster/" -e s,{IMAGE_TAG},${{ github.ref_name }}, < README.tmpl > README.md
+          sed -i -e "/{MODULES_IMAGE_LIST}/r modules.md" -e "/{MODULES_IMAGE_LIST}/d" README.md
+
       - name: git commit README.md 
         id: commit
         if: ${{ github.event_name == 'release' }}
@@ -277,4 +317,7 @@ jobs:
         with:
           token: ${{ secrets.BOT_PUSH_TOKEN }}
           branch: main
-          #unprotect_reviews: true
+
+      - name: Set step summary
+        run: |
+          cat README.md >> $GITHUB_STEP_SUMMARY

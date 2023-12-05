@@ -1,12 +1,13 @@
 # fhempy-docker
-Docker Container with [fhempy](https://github.com/fhempy/fhempy) which can be connected to [FHEM](https://fhem.de/)
+Docker Containers with [fhempy](https://github.com/fhempy/fhempy) which can be connected to [FHEM](https://fhem.de/)
 
-# Image with Perl core modules installed
+# Every image comes as a seperate image.
+If you want two modules, you have to start two containers.
+
 
 * Debian 11 {DEBIAN_RELEASE}
 * Python {PYTHON_VERSION}
 * fhempy {FHEMPY_VERSION}
-
 
 
 # How to use with docker-compose
@@ -18,9 +19,16 @@ Example is assuming, that your FHEM network is named `net` and already defined a
   fhempy:
     networks:
       - net
-    image: ghcr.io/fhem/fhempy-docker:{IMAGE_TAG}
+    image: ghcr.io/fhem/fhempy-docker-<modulename>:{IMAGE_TAG}
  ```
 
 To start your container right away:
     
-    docker run -d --name fhempy ghcr.io/fhem/fhempy-docker:{IMAGE_TAG}
+    docker run -d --name fhempy ghcr.io/fhem/fhempy-docker-<modulename>:{IMAGE_TAG}
+
+
+# Supported Modules and their image
+
+| Module | Image name  |
+|------|-------|
+{MODULES_IMAGE_LIST}
