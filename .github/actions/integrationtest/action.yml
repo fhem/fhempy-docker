@@ -20,12 +20,12 @@ runs:
       # https://github.com/docker/metadata-action
       - name: Extract Docker metadata
         id: meta-base
-        uses: docker/metadata-action@v4.1.1
+        uses: docker/metadata-action@v5.2.0
         with:
           images: base
 
       - name: Build base image
-        uses: docker/build-push-action@v3.2.0
+        uses: docker/build-push-action@v4.1.0
         id: docker_build_base
         with:
           context: .
@@ -41,12 +41,12 @@ runs:
 
       - name: Extract Docker metadata
         id: meta-runtime
-        uses: docker/metadata-action@v4.1.1
+        uses: docker/metadata-action@v5.2.0
         with:
           images: runtime
 
       - name: Build for integration test amd64 
-        uses: docker/build-push-action@v3.2.0
+        uses: docker/build-push-action@v4.1.0
         id: docker_build_runtime
         with:
           context: .
