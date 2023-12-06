@@ -39,7 +39,6 @@ jobs:
           driver-opts: |
             image=moby/buildkit:v0.12.4
 
-
       - name: Build builder stage
         id: build_base_cross
         uses: docker/build-push-action@v5.1.0
@@ -230,8 +229,6 @@ jobs:
       - name: Install cosign
         if: github.event_name == 'release'
         uses: sigstore/cosign-installer@v2.8.1
-        with:
-          cosign-release: 'v1.9.0'
  
       # Login against a Docker registry if it is a release
       # https://github.com/docker/login-action
