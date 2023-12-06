@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # base
-FROM python:3.11.4 as base
+FROM python:3.12.0 as base
 RUN apt update && \
     apt install dbus python-dbus-dev build-essential libssl-dev libffi-dev python3-dev -y --no-install-recommends  \
     && rm -rf /var/lib/apt/lists/*
