@@ -31,14 +31,14 @@ runs:
           context: .
           platforms: ${{ inputs.PLATTFORM }}
           push: false
-          load: true
+          load: false
           tags: ${{ steps.meta-base.outputs.tags }}
           labels: ${{ steps.meta-base.outputs.labels }}
-          cache-to: type=gha,mode=max,scope=verify_base_${{ inputs.PLATTFORM }}
-          cache-from: type=gha,scope=verify_base_${{ inputs.PLATTFORM }}
+          #cache-to: type=gha,mode=max,scope=verify_base_${{ inputs.PLATTFORM }}
+          #cache-from: type=gha,scope=verify_base_${{ inputs.PLATTFORM }}
           build-args: FHEMPY_V=${{ inputs.FHEMPY_VERSION }}
           target: base
-            
+
       - name: Extract Docker metadata
         id: meta-runtime
         uses: docker/metadata-action@v5.2.0
@@ -56,7 +56,6 @@ runs:
           tags: ${{ steps.meta-runtime.outputs.tags }}
           labels: ${{ steps.meta-runtime.outputs.labels }}
           cache-from: | 
-            type=gha,scope=verify_base_${{ inputs.PLATTFORM }}
             type=gha,scope=verify_runtime_${{ inputs.PLATTFORM }}
           cache-to: type=gha,mode=max,scope=verify_runtime_${{ inputs.PLATTFORM }}
           build-args: FHEMPY_V=${{ inputs.FHEMPY_VERSION }}

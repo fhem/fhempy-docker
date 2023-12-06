@@ -1,28 +1,38 @@
-# base
-FROM python:3.9.14 as base
-RUN apt update && \
-    apt install dbus python-dbus-dev rustc build-essential libssl-dev libffi-dev python3-dev cargo -y --no-install-recommends \
-    && rm -rf /var/lib/apt/lists/*
+# syntax=docker/dockerfile:1
 
-ARG FHEMPY_V=unset
-ADD https://raw.githubusercontent.com/fhempy/fhempy/v${FHEMPY_V}/requirements.txt /
+# base fhempy will be installed
+FROM python:3.9.17 as base
 
-RUN pip wheel --no-cache-dir --wheel-dir /wheels -r requirements.txt
-
-
-FROM python:3.9.14-slim as runtime
-
-WORKDIR /usr/src/app
-
-COPY requirements.txt .
-COPY --from=base /wheels /wheels
-#RUN pip install --no-cache /wheels/*
-RUN pip install --no-cache --find-links=/wheels -r requirements.txt
-# RUN rm -r /wheels
+COPY requirements.txt ./requirements.txt
 
 RUN apt update && \
-    apt install curl -y --no-install-recommends \
+    apt install dbus python-dbus-dev curl -y --no-install-recommends \
+    && rm -rf /var/lib/apt/lists/* 
+
+RUN pip install --no-cache -r requirements.txt 
+#RUN pip uninstall "Cython" && pip install --no-cache "Cython<3.0"
+
+
+# image for fhempy (final stage) modules will be installed here
+FROM base as runtime
+
+WORKDIR /usr/src/apps
+
+ARG PKGS=python3-dev
+RUN apt update && \
+    apt install $PKGS -y --no-install-recommends  \
     && rm -rf /var/lib/apt/lists/*
+
+COPY requirements_mod.txt ./requirements.txt
+
+ARG CARGO_NET_GIT_FETCH_WITH_CLI=true
+ARG CRYPTOGRAPHY_DONT_BUILD_RUST=1
+
+RUN export RUSTFLAGS=" -C lto=no" && export CARGO_BUILD_TARGET="$(rustc -vV | sed -n 's|host: ||p')" && pip install --no-cache -r requirements.txt 
+# RUSTFLAGS += -C linker=$(DEB_HOST_GNU_TYPE)-gcc
+# Disable installing from INDEX
+ENV PIP_NO_INDEX=1 
+
 
 COPY src/health-check.sh /health-check.sh
 RUN chmod +x /health-check.sh

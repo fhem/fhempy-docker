@@ -1,0 +1,386 @@
+name: Matrix-build-wheels
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+      - 'releases/**'
+  release:
+    types: 
+      - published
+      - released
+  schedule:
+    - cron: '45 4 * * *'
+    
+jobs:
+  prepare_build:
+#    name: Get fhempy version
+    runs-on: ubuntu-latest
+    outputs:
+      fhempyV: ${{steps.split_fhempyV.outputs.result}}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Split fhempy Version
+        id: split_fhempyV
+        run: |
+          echo "result=$(grep '^fhempy' requirements.txt | cut -d '=' -f3)" >> $GITHUB_OUTPUT      
+ 
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Setup Docker buildx
+        uses: docker/setup-buildx-action@v2
+        with:
+          driver-opts: |
+            image=moby/buildkit:v0.12.4
+
+
+      - name: Build builder stage
+        id: build_base_cross
+        uses: docker/build-push-action@v3.2.0
+        with:
+          context: .
+          file: Dockerfile
+          platforms: linux/amd64,linux/arm/v6,linux/arm/v7
+          push: false
+          target: base
+          cache-to: type=local,dest=/tmp/.buildx-cache,mode=max
+          cache-from: |
+            type=gha,scope=base_stage_amd64
+            type=gha,scope=base_stage_armv7
+            type=gha,scope=base_stage_armv6
+
+      - name: cache base image amd64
+        uses: docker/build-push-action@v3.2.0
+        with:
+          context: .
+          file: Dockerfile
+          platforms: linux/amd64
+          push: false
+          target: base
+          cache-to: type=gha,mode=min,scope=base_stage_amd64
+          cache-from: type=local,src=/tmp/.buildx-cache
+
+      - name: cache base image armv7
+        uses: docker/build-push-action@v3.2.0
+        with:
+          context: .
+          file: Dockerfile
+          platforms: linux/arm/v7
+          push: false
+          target: base
+          cache-to: type=gha,mode=min,scope=base_stage_armv7
+          cache-from: type=local,src=/tmp/.buildx-cache
+
+      - name: cache base image armv6
+        uses: docker/build-push-action@v3.2.0
+        with:
+          context: .
+          file: Dockerfile
+          platforms: linux/arm/v6
+          push: false
+          target: base
+          cache-to: type=gha,mode=min,scope=base_stage_armv6
+          cache-from: type=local,src=/tmp/.buildx-cache
+
+  prepare_matrix:
+#   name:  Find fhempy modules 
+    needs: prepare_build
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{steps.getModules.outputs.matrix}}
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          repository: 'fhempy/fhempy'
+          ref: 'v${{ needs.prepare_build.outputs.fhempyV }}'
+
+      - name: Get module name and prepare matrix
+        id: getModules
+        working-directory: FHEM/bindings/python/fhempy/lib
+        run: |
+          JSON='{ "include":[] }'
+          # Gather requirements from fhempy module
+          #readarray -t REQS < <(cat ../../../../../requirements.txt | jq --raw-input -c)
+          #for r in "${REQS[@]}"
+          #do
+          #      JSON=$(echo $JSON | jq -c --argjson REQUIREMENTS $r --arg PACKAGES "cargo rustc" --arg M "fhempy" '.include += [{"module": $M, "requirements": [$REQUIREMENTS], "PKGS" : $PACKAGES} ]')
+          #done
+          readarray -t MODS < <(find ./ -type f -name manifest.json -exec sh -c 'dirname {}' \;  | sed 's|^./||')
+          #printf '%s\n' "${MODS[@]}"
+          for i in "${MODS[@]}"
+          do
+              REQS=$(jq -cr 'select(.requirements != []).requirements' ./"$i"/manifest.json)
+              ## Just for testing the pipeline with a subset of modules
+              if ! [[ "$i" =~ ^(googlecast|geizhals|fhem_forum|bt_presence|tuya)$ ]]; then
+                continue
+              fi
+              ## End of test
+              if [[ -z $REQS ]]; then
+                continue
+              fi
+              ADD_PKGS=""
+              # skip problematic modules until solution found
+              if [[ "$i" =~ "object_detection" ]]; then 
+                continue 
+              fi
+              # Waiting for https://github.com/fhempy/fhempy/issues/228
+              if [[ "$i" =~ "esphome" ]]; then 
+                continue 
+              fi
+              # Waiting for https://github.com/fhempy/fhempy/issues/229
+              if [[ "$i" =~ "xiaomi_gateway3" ]]; then 
+                continue 
+              fi
+              if [[ "$i" =~ ^(eq3bt|gfprobt|ble_reset|blue_connect|object_detection)$ ]]; then 
+                ADD_PKGS="cmake ninja-build"
+              elif [[ "$i" =~ ^(seatconnect|skodaconnect|miio|xiaomi_gateway3|xiaomi_gateway3_device|pyit600|esphome|tuya|homekit)$ ]]; then 
+                ADD_PKGS="rustc cargo"
+              fi
+              JSON=$(echo $JSON | jq -c --argjson REQUIREMENTS $REQS --arg PACKAGES "$ADD_PKGS" --arg M "$i" '.include += [{"module": $M, "requirements": $REQUIREMENTS, "PKGS" : $PACKAGES} ]')
+          done
+          #echo $JSON
+          echo "matrix=$JSON" >> $GITHUB_OUTPUT
+        shell: bash
+
+  buildImages:
+    runs-on: ubuntu-latest
+    needs: [prepare_build, prepare_matrix]
+    permissions:
+      contents: write
+      packages: write
+      # This is used to complete the identity challenge
+      # with sigstore/fulcio when running outside of PRs.
+      id-token: write
+    env:
+      # Use docker.io for Docker Hub if empty
+      REGISTRY: ghcr.io
+      # github.repository as <account>/<repo>
+      IMAGE_NAME: ${{ github.repository }}
+    strategy:
+      matrix:
+        ${{fromJson(needs.prepare_matrix.outputs.matrix)}}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: check variables
+        run: |
+          echo '${{ toJSON(matrix) }}'
+          echo '${{ matrix.module }}'
+
+      - name: write requirement for mod from matrix input
+        run: |
+          echo '${{toJSON(matrix.requirements)}}'  | jq --raw-output -e '.[]' > ./requirements_mod.txt
+          cat ./requirements_mod.txt
+
+      - name: Run Docker on tmpfs
+        uses: sidey79/docker-on-tmpfs@main
+        with:
+          tmpfs_size: 6
+          swap_size: 4
+          swap_location: '/mnt/swapfile'
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Setup Docker buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver-opts: |
+            image=moby/buildkit:v0.12.4
+
+      - name: Extract Docker metadata
+        id: meta-it
+        uses: docker/metadata-action@v4.1.1
+        with:
+          images: runtime
+
+      - name: Build for integration test 
+        id: build-it
+        uses: docker/build-push-action@v5.1.0
+        with:
+          context: .
+          file: Dockerfile
+          platforms: linux/amd64
+          push: false
+          load: true
+          target: runtime
+          cache-to: type=gha,scope=runtime-stage-${{ matrix.module }}_${{ hashFiles('./requirements_mod.txt') }}-amd64
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: |
+            type=gha,scope=base_stage_amd64
+            type=gha,scope=runtime-stage-${{ matrix.module }}_${{ hashFiles('./requirements_mod.txt') }}-amd64
+          build-args: |
+            PKGS=${{ matrix.PKGS }}
+
+      - name: Run integration tests
+        shell: bash
+        run: |
+          ./scripts/test-integration.sh ${{ steps.build-it.outputs.imageid }}
+
+      - name: Install cosign
+        if: github.event_name == 'release'
+        uses: sigstore/cosign-installer@v2.8.1
+        with:
+          cosign-release: 'v1.9.0'
+ 
+      # Login against a Docker registry if it is a release
+      # https://github.com/docker/login-action
+      - name: Log into registry ${{ env.REGISTRY }}
+        #if: github.event_name == 'release'
+        uses: docker/login-action@v2.1.0
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v4.1.1
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}_${{ matrix.module }}
+          flavor: |
+             latest= ${{ fromJSON('["auto", "false"]')[github.event.release.prerelease == 1] }}
+          tags: |
+            type=ref,enable=true,priority=600,prefix=pr-,suffix=,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}},enable=${{ github.event.release.prerelease == 0 }}
+            type=ref,event=branch
+            type=ref,event=pr
+          labels: |
+            org.opencontainers.image.title=${{ env.IMAGE_NAME }}_${{ matrix.module }}
+      
+      - name: Build and push Docker image for all plattforms
+        uses: docker/build-push-action@v3.2.0
+        id: docker_build_runtime_cross
+        with:
+          context: .
+          platforms: linux/arm/v7,linux/amd64
+          push: ${{ github.event_name == 'release' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          target: runtime
+          cache-to: type=local,dest=/tmp/.buildx-cache,mode=max
+          cache-from: |
+            type=gha,scope=base_stage_amd64
+            type=gha,scope=base_stage_armv6
+            type=gha,scope=base_stage_armv7
+            type=gha,scope=runtime-stage-${{ matrix.module }}_${{ hashFiles('./requirements_mod.txt') }}-amd64
+            type=gha,scope=runtime-stage-${{ matrix.module }}_${{ hashFiles('./requirements_mod.txt') }}-armv7
+          build-args: |
+            PKGS=${{ matrix.PKGS }}
+
+      - name: show image details
+        run: | 
+          echo "${{ steps.docker_build_runtime_cross.outputs.imageid }}"
+          echo "${{ steps.docker_build_runtime_cross.outputs.digest }}"
+          echo "${{ steps.docker_build_runtime_cross.outputs.metadata }}"
+      # Sign the resulting Docker image digest except on PRs.
+      # This will only write to the public Rekor transparency log when the Docker
+      # repository is public to avoid leaking data.  If you would like to publish
+      # transparency data even for private images, pass --force to cosign below.
+      # https://github.com/sigstore/cosign
+      - name: Sign the published Docker image
+        if: ${{ github.event_name == 'release' }}
+        env:
+          COSIGN_EXPERIMENTAL: "true"
+        # This step uses the identity token to provision an ephemeral certificate
+        # against the sigstore community Fulcio instance.
+        run: echo "${{ steps.meta.outputs.tags }}" | xargs -I {} cosign sign {}@${{ steps.docker_build_runtime_cross.outputs.digest }}
+
+      - name: Create Job Summary
+        run: |
+          echo "### Image report for : ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "| Module | Image name  |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|----------------------------------------------------------------------|" >> $GITHUB_STEP_SUMMARY
+          echo "| ${{ matrix.module }} | ${{ fromJSON(steps.docker_build_runtime_cross.outputs.metadata)['image.name'] }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| ${{ matrix.module }} | ${{ fromJSON(steps.docker_build_runtime_cross.outputs.metadata)['image.name'] }} |" > matrix_result.md
+      
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ hashFiles('matrix_result.md') || 'none' }}
+          path: matrix_result.md
+          if-no-files-found: warn
+
+      - name: cache armv7 image
+        uses: docker/build-push-action@v3.2.0
+        with:
+          context: .
+          platforms: linux/arm/v7
+          push: false
+          load: false
+          target: runtime
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=gha,scope=runtime-stage-${{ matrix.module }}_${{ hashFiles('./requirements_mod.txt') }}-armv7
+          build-args: |
+            PKGS=${{ matrix.PKGS }}
+
+      - name: cache amd64 image
+        uses: docker/build-push-action@v3.2.0
+        with:
+          context: .
+          platforms: linux/amd64
+          push: false
+          load: false
+          target: runtime
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=gha,scope=runtime-stage-${{ matrix.module }}_${{ hashFiles('./requirements_mod.txt') }}-amd64
+          build-args: |
+            PKGS=${{ matrix.PKGS }}
+  
+  check-matrix:
+    runs-on: ubuntu-latest
+    needs: [buildImages,prepare_build]
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      
+      - uses: actions/download-artifact@v3
+
+      - name: Find image String
+        id: extract_image
+        run: |
+          echo "image_name=$(grep -m 1 '^FROM' Dockerfile | cut -d ' ' -f2 | cut -d ':' -f1)" >> $GITHUB_OUTPUT
+          echo "image_version=$(grep -m 1 '^FROM' Dockerfile | cut -d ' ' -f2 | cut -d ':' -f2)" >> $GITHUB_OUTPUT
+         
+      - name: Update docs (readme.md)
+        run: |
+          cat */matrix_result.md  > modules.md
+          IMAGE_LIST=$(cat modules.md)
+          echo "$IMAGE_LIST"
+          ESCAPED_DATA="$(echo "${IMAGE_LIST}" | sed 's/\n/\\n/g')"
+          echo "--------"
+          echo "$ESCAPED_DATA"
+          sed -e "s/{FHEMPY_VERSION}/${{ needs.prepare_build.outputs.fhempyV }}/" -e "s/{PYTHON_VERSION}/${{ steps.extract_image.outputs.image_version}}/" -e "s/{DEBIAN_RELEASE}/buster/" -e s,{IMAGE_TAG},${{ github.ref_name }}, < README.tmpl > README.md
+          sed -i -e "/{MODULES_IMAGE_LIST}/r modules.md" -e "/{MODULES_IMAGE_LIST}/d" README.md
+
+      - name: git commit README.md 
+        id: commit
+        if: ${{ github.event_name == 'release' }}
+        run: |
+          git config --global user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git commit -m "README.md: Update Versions" -a && echo "::set-output name=status::true" || true
+      
+      - name: Push back to protected branch (main)
+        uses: CasperWA/push-protected@v2
+        if: ${{ github.event_name == 'release' }}
+        with:
+          token: ${{ secrets.BOT_PUSH_TOKEN }}
+          branch: main
+
+      - name: Set step summary
+        run: |
+          cat README.md >> $GITHUB_STEP_SUMMARY

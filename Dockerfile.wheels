@@ -1,0 +1,48 @@
+# syntax=docker/dockerfile:1
+
+# base
+FROM python:3.11.4 as base
+RUN apt update && \
+    apt install dbus python-dbus-dev build-essential libssl-dev libffi-dev python3-dev -y --no-install-recommends  \
+    && rm -rf /var/lib/apt/lists/*
+
+ENV CARGO_NET_GIT_FETCH_WITH_CLI=true
+
+
+FROM base AS builder
+COPY requirements_mod.txt ./requirements.txt
+
+#COPY ./artifacts/ /wheelartifacts
+#ARG TARGETOS
+#ARG TARGETVARIANT
+#ARG TARGETARCH
+#RUN find /wheelartifacts -mindepth 2 -maxdepth 2 -regextype posix-extended -type d -not -regex  ".*/${TARGETOS}_${TARGETARCH}(_${TARGETVARIANT})?$" -exec rm -rv {} \; \
+#    && mv /wheelartifacts/*/*/wheels/* /wheelartifacts || true \
+#    && du -a /wheelartifacts 
+# Build dependencys as wheels
+
+#RUN --mount=type=bind,target=/wheelartifacts,source=artifacts,rw \
+#    find /wheelartifacts -mindepth 2 -maxdepth 2 -regextype posix-extended -type d -not -regex  ".*/${TARGETOS}_${TARGETARCH}(_${TARGETVARIANT})?$" -exec rm -rv {} \; \
+#    && mv /wheelartifacts/*/*/wheels/* /wheelartifacts || true \
+#    && du -a /wheelartifacts \
+
+ARG PKGS=python3-dev
+ARG CRYPTOGRAPHY_DONT_BUILD_RUST=1
+RUN apt update && \
+    apt install $PKGS -y --no-install-recommends  \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN pip wheel --no-cache --wheel-dir /wheels \
+#    --find-links file:///wheelartifacts \
+    -r requirements.txt
+
+
+FROM scratch AS image-stage
+COPY --from=builder /wheels ./wheels
+COPY --from=builder requirements.txt ./
+
+
+# Just a stage to export our wheel 
+FROM scratch AS export-stage
+COPY --from=builder /wheels ./wheels
+COPY --from=builder requirements.txt ./
