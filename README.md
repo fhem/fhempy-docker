@@ -1,12 +1,13 @@
 # fhempy-docker
-Docker Container with [fhempy](https://github.com/fhempy/fhempy) which can be connected to [FHEM](https://fhem.de/)
+Docker Containers with [fhempy](https://github.com/fhempy/fhempy) which can be connected to [FHEM](https://fhem.de/)
 
-# Image with Perl core modules installed
+# Every image comes as a seperate image.
+If you want two modules, you have to start two containers.
+
 
 * Debian 11 buster
-* Python 3.9.14
-* fhempy 0.1.505
-
+* Python 3.9.18
+* fhempy 0.1.681
 
 
 # How to use with docker-compose
@@ -18,9 +19,20 @@ Example is assuming, that your FHEM network is named `net` and already defined a
   fhempy:
     networks:
       - net
-    image: ghcr.io/fhem/fhempy-docker:V1.2
+    image: ghcr.io/fhem/fhempy-docker-<modulename>:v1.4.0-beta.1
  ```
 
 To start your container right away:
     
-    docker run -d --name fhempy ghcr.io/fhem/fhempy-docker:V1.2
+    docker run -d --name fhempy ghcr.io/fhem/fhempy-docker-<modulename>:v1.4.0-beta.1
+
+
+# Supported Modules and their image
+
+| Module | Image name  |
+|------|-------|
+| googlecast | ghcr.io/fhem/fhempy-docker_googlecast:1.4.0-beta.1 |
+| fhem_forum | ghcr.io/fhem/fhempy-docker_fhem_forum:1.4.0-beta.1 |
+| tuya | ghcr.io/fhem/fhempy-docker_tuya:1.4.0-beta.1 |
+| bt_presence | ghcr.io/fhem/fhempy-docker_bt_presence:1.4.0-beta.1 |
+| geizhals | ghcr.io/fhem/fhempy-docker_geizhals:1.4.0-beta.1 |
