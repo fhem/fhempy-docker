@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # base fhempy will be installed
-FROM python:3.9.17 as base
+FROM python:3.9.18 as base
 
 COPY requirements.txt ./requirements.txt
 
@@ -10,8 +10,6 @@ RUN apt update && \
     && rm -rf /var/lib/apt/lists/* 
 
 RUN pip install --no-cache -r requirements.txt 
-#RUN pip uninstall "Cython" && pip install --no-cache "Cython<3.0"
-
 
 # image for fhempy (final stage) modules will be installed here
 FROM base as runtime
