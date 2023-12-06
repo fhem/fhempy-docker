@@ -42,7 +42,7 @@ jobs:
 
       - name: Build builder stage
         id: build_base_cross
-        uses: docker/build-push-action@v3.2.0
+        uses: docker/build-push-action@v5.1.0
         with:
           context: .
           file: Dockerfile
@@ -56,7 +56,7 @@ jobs:
             type=gha,scope=base_stage_armv6
 
       - name: cache base image amd64
-        uses: docker/build-push-action@v3.2.0
+        uses: docker/build-push-action@v5.1.0
         with:
           context: .
           file: Dockerfile
@@ -67,7 +67,7 @@ jobs:
           cache-from: type=local,src=/tmp/.buildx-cache
 
       - name: cache base image armv7
-        uses: docker/build-push-action@v3.2.0
+        uses: docker/build-push-action@v5.1.0
         with:
           context: .
           file: Dockerfile
@@ -78,7 +78,7 @@ jobs:
           cache-from: type=local,src=/tmp/.buildx-cache
 
       - name: cache base image armv6
-        uses: docker/build-push-action@v3.2.0
+        uses: docker/build-push-action@v5.1.0
         with:
           context: .
           file: Dockerfile
@@ -260,7 +260,7 @@ jobs:
             org.opencontainers.image.title=${{ env.IMAGE_NAME }}_${{ matrix.module }}
       
       - name: Build and push Docker image for all plattforms
-        uses: docker/build-push-action@v3.2.0
+        uses: docker/build-push-action@v5.1.0
         id: docker_build_runtime_cross
         with:
           context: .
@@ -313,7 +313,7 @@ jobs:
           if-no-files-found: warn
 
       - name: cache armv7 image
-        uses: docker/build-push-action@v3.2.0
+        uses: docker/build-push-action@v5.1.0
         with:
           context: .
           platforms: linux/arm/v7
@@ -326,7 +326,7 @@ jobs:
             PKGS=${{ matrix.PKGS }}
 
       - name: cache amd64 image
-        uses: docker/build-push-action@v3.2.0
+        uses: docker/build-push-action@v5.1.0
         with:
           context: .
           platforms: linux/amd64
