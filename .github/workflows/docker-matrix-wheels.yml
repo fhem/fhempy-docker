@@ -8,8 +8,9 @@ on:
     branches:
       - main
       - 'releases/**'
-    tags:
-      - 'v*'  
+  release:
+    types: [ published  ]
+
   schedule:
     - cron: '45 4 * * *'
     
