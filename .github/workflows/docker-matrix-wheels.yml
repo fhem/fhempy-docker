@@ -23,7 +23,7 @@ jobs:
       fhempyV: ${{steps.split_fhempyV.outputs.result}}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Split fhempy Version
         id: split_fhempyV
@@ -96,7 +96,7 @@ jobs:
       matrix: ${{steps.getModules.outputs.matrix}}
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           repository: 'fhempy/fhempy'
           ref: 'v${{ needs.prepare_build.outputs.fhempyV }}'
@@ -169,7 +169,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: check variables
         run: |
@@ -345,7 +345,7 @@ jobs:
       contents: write
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       
       - uses: actions/download-artifact@v3
 
