@@ -116,7 +116,7 @@ jobs:
           do
               REQS=$(jq -cr 'select(.requirements != []).requirements' ./"$i"/manifest.json)
               ## Just for testing the pipeline with a subset of modules
-              if ! [[ "$i" =~ ^(googlecast|geizhals|fhem_forum|bt_presence)$ ]]; then
+              if ! [[ "$i" =~ ^(googlecast|geizhals|fhem_forum|bt_presence|tuya)$ ]]; then
                 continue
               fi
               ## End of test
