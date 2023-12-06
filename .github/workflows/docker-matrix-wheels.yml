@@ -12,7 +12,9 @@ on:
     types: 
       - published
       - released
-
+  schedule:
+    - cron: '45 4 * * *'
+    
 jobs:
   prepare_build:
 #    name: Get fhempy version
