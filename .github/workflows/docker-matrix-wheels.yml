@@ -162,6 +162,7 @@ jobs:
       # github.repository as <account>/<repo>
       IMAGE_NAME: ${{ github.repository }}
     strategy:
+      max-parallel: 5
       matrix:
         ${{fromJson(needs.prepare_matrix.outputs.matrix)}}
 
@@ -211,7 +212,7 @@ jobs:
           push: false
           load: true
           target: runtime
-          cache-to: type=gha,scope=runtime-stage-${{ matrix.module }}_${{ hashFiles('./requirements_mod.txt') }}-amd64
+          cache-to: type=gha,scope=runtime-stage-${{ matrix.module }}_${{ hashFiles('./requirements_mod.txt') }}-amd64,ignore-error=true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: |
@@ -232,7 +233,7 @@ jobs:
       # Login against a Docker registry if it is a release
       # https://github.com/docker/login-action
       - name: Log into registry ${{ env.REGISTRY }}
-        #if: github.event_name == 'release'
+        if: github.event_name == 'release'
         uses: docker/login-action@v3.0.0
         with:
           registry: ${{ env.REGISTRY }}
