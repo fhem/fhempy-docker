@@ -128,10 +128,6 @@ jobs:
               if [[ "$i" =~ "object_detection" ]]; then 
                 continue 
               fi
-              # Waiting for https://github.com/fhempy/fhempy/issues/228
-              if [[ "$i" =~ "esphome" ]]; then 
-                continue 
-              fi
               # Waiting for https://github.com/fhempy/fhempy/issues/229
               if [[ "$i" =~ "xiaomi_gateway3" ]]; then 
                 continue 
