@@ -128,10 +128,6 @@ jobs:
               if [[ "$i" =~ "object_detection" ]]; then 
                 continue 
               fi
-              # Waiting for https://github.com/fhempy/fhempy/issues/229
-              if [[ "$i" =~ "xiaomi_gateway3" ]]; then 
-                continue 
-              fi
               if [[ "$i" =~ ^(eq3bt|gfprobt|ble_reset|blue_connect|object_detection)$ ]]; then 
                 ADD_PKGS="cmake ninja-build"
               elif [[ "$i" =~ ^(seatconnect|skodaconnect|miio|xiaomi_gateway3|xiaomi_gateway3_device|pyit600|esphome|tuya|homekit)$ ]]; then 
