@@ -296,7 +296,7 @@ jobs:
           echo "| ${{ matrix.module }} | ${{ fromJSON(steps.docker_build_runtime_cross.outputs.metadata)['image.name'] }} |" > matrix_result.md
       
       - name: Upload artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ hashFiles('matrix_result.md') || 'none' }}
           path: matrix_result.md
