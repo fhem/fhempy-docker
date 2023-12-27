@@ -128,6 +128,11 @@ jobs:
               if [[ "$i" =~ "object_detection" ]]; then 
                 continue 
               fi
+              # skip spotify_connect_player because playwright dependency isn't supported on armhf
+              if [[ "$i" =~ "spotify_connect_player" ]]; then 
+                continue 
+              fi
+
               if [[ "$i" =~ ^(eq3bt|gfprobt|ble_reset|blue_connect|object_detection)$ ]]; then 
                 ADD_PKGS="cmake ninja-build"
               elif [[ "$i" =~ ^(seatconnect|skodaconnect|miio|xiaomi_gateway3|xiaomi_gateway3_device|pyit600|esphome|tuya|homekit)$ ]]; then 
@@ -304,6 +309,7 @@ jobs:
 
       - name: cache armv7 image
         uses: docker/build-push-action@v5.1.0
+        if: always()
         with:
           context: .
           platforms: linux/arm/v7
@@ -316,6 +322,7 @@ jobs:
             PKGS=${{ matrix.PKGS }}
 
       - name: cache amd64 image
+        if: always()
         uses: docker/build-push-action@v5.1.0
         with:
           context: .
