@@ -49,8 +49,9 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ./wheelhouse
-          key: wheels-${{ env.IMAGE_VERSION }}
+          key: wheels-${{ env.IMAGE_VERSION }}-${{ hashFiles('requirements.txt') }}
           restore-keys: |
+           wheels-${{ env.IMAGE_VERSION }}
            wheels-${{ env.IMAGE_VERSION_SHORT }}
            wheels-
                 
@@ -276,7 +277,14 @@ jobs:
           image_version=$(grep -m 1 '^FROM' Dockerfile | cut -d ' ' -f2 | cut -d ':' -f2) 
           echo "IMAGE_VERSION_SHORT=${image_version%.*}" >> $GITHUB_ENV
           echo "IMAGE_VERSION=${image_version}" >> $GITHUB_ENV
-          
+
+      - uses: actions/cache/restore@v3
+        name: restore base cache
+        id: cache
+        with:
+          path: ./wheelhouse
+          key: wheels-${{ env.IMAGE_VERSION }}-${{ hashFiles('requirements.txt') }}
+                  
       - name: Init wheels cache
         id: cache-wheels
         uses: actions/cache@v3
@@ -286,8 +294,9 @@ jobs:
           restore-keys: |
             wheels-${{ matrix.module }}-${{ env.IMAGE_VERSION }}
             wheels-${{ matrix.module }}-
+            wheels-${{ env.IMAGE_VERSION }}-${{ hashFiles('requirements.txt') }}
             wheels-${{ env.IMAGE_VERSION }}
-                
+              
       - name: create cachedir if not exists
         run: |
           mkdir -p ./wheelhouse/linux_amd64
