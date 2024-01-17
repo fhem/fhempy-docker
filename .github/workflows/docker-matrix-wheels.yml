@@ -46,7 +46,7 @@ jobs:
           
       - name: Init wheels cache
         id: cache-wheels
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ./wheelhouse
           key: wheels-${{ env.IMAGE_VERSION }}-${{ hashFiles('requirements.txt') }}
@@ -278,7 +278,7 @@ jobs:
           echo "IMAGE_VERSION_SHORT=${image_version%.*}" >> $GITHUB_ENV
           echo "IMAGE_VERSION=${image_version}" >> $GITHUB_ENV
 
-      - uses: actions/cache/restore@v3
+      - uses: actions/cache/restore@v4
         name: restore base cache
         id: cache
         with:
@@ -287,7 +287,7 @@ jobs:
                   
       - name: Init wheels cache
         id: cache-wheels
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ./wheelhouse
           key: wheels-${{ matrix.module }}-${{ env.IMAGE_VERSION }}
