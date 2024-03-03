@@ -420,13 +420,13 @@ jobs:
           echo "| Module | Image name  |" >> $GITHUB_STEP_SUMMARY
           echo "|-------|----------------------------------------------------------------------|" >> $GITHUB_STEP_SUMMARY
           echo "| ${{ matrix.module }} | ${{ fromJSON(steps.docker_build_runtime_cross.outputs.metadata)['image.name'] }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| ${{ matrix.module }} | ${{ fromJSON(steps.docker_build_runtime_cross.outputs.metadata)['image.name'] }} |" > matrix_result.md
+          echo "| ${{ matrix.module }} | ${{ fromJSON(steps.docker_build_runtime_cross.outputs.metadata)['image.name'] }} |" > ${{ matrix.module }}_result.md
       
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ hashFiles('matrix_result.md') || 'none' }}
-          path: matrix_result.md
+          name: artifact-${{ matrix.module }}
+          path: ${{ matrix.module }}_result.md
           if-no-files-found: warn
 
       #- name: cache armv7 image
@@ -467,6 +467,11 @@ jobs:
         uses: actions/checkout@v4
       
       - uses: actions/download-artifact@v4
+        with:
+          pattern: artifact-*
+          merge-multiple: true
+          path: build-artifact
+           
 
       - name: Find image String
         id: extract_image
@@ -476,7 +481,7 @@ jobs:
          
       - name: Update docs (readme.md)
         run: |
-          cat */matrix_result.md  > modules.md
+          cat build-artifact/*_result.md  > modules.md
           IMAGE_LIST=$(cat modules.md)
           echo "$IMAGE_LIST"
           ESCAPED_DATA="$(echo "${IMAGE_LIST}" | sed 's/\n/\\n/g')"
@@ -485,6 +490,13 @@ jobs:
           sed -e "s/{FHEMPY_VERSION}/${{ needs.prepare_build.outputs.fhempyV }}/" -e "s/{PYTHON_VERSION}/${{ steps.extract_image.outputs.image_version}}/" -e "s/{DEBIAN_RELEASE}/buster/" -e s,{IMAGE_TAG},${{ github.ref_name }}, < README.tmpl > README.md
           sed -i -e "/{MODULES_IMAGE_LIST}/r modules.md" -e "/{MODULES_IMAGE_LIST}/d" README.md
 
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: readme
+          path: README.md
+          if-no-files-found: warn
+  
       - name: git commit README.md 
         id: commit
         if: ${{ github.event_name == 'release' }}
