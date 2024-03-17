@@ -1,4 +1,4 @@
-#  syntax=docker.io/docker/dockerfile:1.6.0
+#  syntax=docker.io/docker/dockerfile:1.7.0
 
 
 # Building wheels for later useage
