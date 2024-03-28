@@ -26,6 +26,18 @@ To start your container right away:
     
     docker run -d --name fhempy ghcr.io/fhem/fhempy-docker-<modulename>:{IMAGE_TAG}
 
+# How to use fhempy 
+
+As noted in the upstream repository, fhempy runs not in the same container as fhem.
+So you have to follow, the remote peer setup instructions.
+
+Example:
+- Container ist named fhempy-googleweather
+- FHEM and fhempy are on the same network
+- Containernames can bei resolved via DNS
+
+In FHEM a BindingsIO Definition must be defined, pointing to the container:
+`define fhempy_peer_IP BindingsIo fhempy-googleweather:15733 fhempy`
 
 # Supported Modules and their image
 
