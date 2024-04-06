@@ -40,6 +40,7 @@ for ID in $IMAGE; do
       echo -n " ."
       echo $healthstate
       sleep 3
+      docker logs "$CONTAINER" --since "3s"
     done
     if [ -n "$healthstate" ] && [ "$healthstate" == "healthy" ]; then
       status="OK"
