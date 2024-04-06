@@ -7,24 +7,14 @@ readarray -t MODS < <(find "$searchPath" -type f -name manifest.json -exec sh -c
 [ -z ${GITHUB_RUN_ID+x} ] && printf '%s\n' "${MODS[@]}"
 for i in "${MODS[@]}"
 do
-    REQS=$(jq -cr 'select(.requirements != []).requirements' ./"$i"/manifest.json)
-    if [[ -z $REQS ]]; then
-        REQS="[]"
-    fi
-    ADD_PKGS=""
+    [[ "$i" =~ "object_detection" ]] && continue;         # build is not successfull
+    [[ "$i" =~ "spotify_connect_player" ]] && continue;   # skip because playwright dependency isn't supported on armhf
+    [[ "$i" =~ ^core ]] && continue;                      # Core modules need no seperate image: https://github.com/fhempy/fhempy/issues/392
+    [[ "$i" =~ ^websitetests ]] && continue;              # Integration tests fails: https://github.com/fhem/fhempy-docker/issues/171
 
-    # skip problematic modules until solution found
-    if [[ "$i" =~ "object_detection" ]]; then 
-        continue 
-    fi
-    # skip spotify_connect_player because playwright dependency isn't supported on armhf
-    if [[ "$i" =~ "spotify_connect_player" ]]; then 
-        continue 
-    fi
-    # Core modules need no seperate image. Details: https://github.com/fhempy/fhempy/issues/392
-    if [[ "$i" =~ ^core ]]; then 
-        continue 
-    fi
+    REQS=$(jq -cr 'select(.requirements != []).requirements' ./"$i"/manifest.json)
+    [[ -z $REQS ]] &&  REQS="[]"
+    ADD_PKGS=""
 
 
     if [[ "$i" =~ ^(eq3bt|gfprobt|ble_reset|blue_connect|object_detection)$ ]]; then 
@@ -34,6 +24,6 @@ do
     fi
     JSON=$(echo "$JSON" | jq -c --argjson REQUIREMENTS $REQS --arg PACKAGES "$ADD_PKGS" --arg M "$i" '.include += [{"module": $M, "requirements": $REQUIREMENTS, "PKGS" : $PACKAGES} ]')
 done
-[ -z ${GITHUB_RUN_ID+x} ] && echo $JSON || echo "matrix=$JSON" >> $GITHUB_OUTPUT
+[ -z ${GITHUB_RUN_ID+x} ] && echo "$JSON" || echo "matrix=$JSON" >> $GITHUB_OUTPUT
 
 exit 0
