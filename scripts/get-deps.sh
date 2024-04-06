@@ -21,6 +21,11 @@ do
     if [[ "$i" =~ "spotify_connect_player" ]]; then 
         continue 
     fi
+    # Core modules need no seperate image. Details: https://github.com/fhempy/fhempy/issues/392
+    if [[ "$i" =~ ^core ]]; then 
+        continue 
+    fi
+
 
     if [[ "$i" =~ ^(eq3bt|gfprobt|ble_reset|blue_connect|object_detection)$ ]]; then 
         ADD_PKGS="cmake ninja-build"
