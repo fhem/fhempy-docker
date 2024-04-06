@@ -22,11 +22,13 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          filter: tree:0
 
       - name: Split fhempy Version
         id: split_fhempyV
         run: |
-          echo "result=$(grep '^fhempy' requirements.txt | cut -d '=' -f3)" >> $GITHUB_OUTPUT      
+          echo "result=$(grep '^fhempy' requirements.txt | cut -d '=' -f3)" >> $GITHUB_OUTPUT
  
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -159,61 +161,33 @@ jobs:
             REQUIREMENTS_FILE=requirements_extra.txt
     
   prepare_matrix:
-#   name:  Find fhempy modules 
-    needs: prepare_build
+    #name:  Find fhempy modules 
+    #needs: prepare_build
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{steps.getModules.outputs.matrix}}
-
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          filter: tree:0
+
+      - name: Split fhempy Version
+        run: |
+          echo "fhempyVersion=$(grep '^fhempy' requirements.txt | cut -d '=' -f3)" >> $GITHUB_ENV
+
       - uses: actions/checkout@v4
         with:
           repository: 'fhempy/fhempy'
-          ref: 'v${{ needs.prepare_build.outputs.fhempyV }}'
+          path: fhempyRepo
+          filter: tree:0
+          ref: 'v${{ env.fhempyVersion }}'
 
-      - name: Get module name and prepare matrix
+      - name: Get module names and prepare matrix
         id: getModules
-        working-directory: FHEM/bindings/python/fhempy/lib
+        working-directory: ./fhempyRepo/FHEM/bindings/python/fhempy/lib
         run: |
-          JSON='{ "include":[] }'
-          # Gather requirements from fhempy module
-          #readarray -t REQS < <(cat ../../../../../requirements.txt | jq --raw-input -c)
-          #for r in "${REQS[@]}"
-          #do
-          #      JSON=$(echo $JSON | jq -c --argjson REQUIREMENTS $r --arg PACKAGES "cargo rustc" --arg M "fhempy" '.include += [{"module": $M, "requirements": [$REQUIREMENTS], "PKGS" : $PACKAGES} ]')
-          #done
-          readarray -t MODS < <(find ./ -type f -name manifest.json -exec sh -c 'dirname {}' \;  | sed 's|^./||')
-          #printf '%s\n' "${MODS[@]}"
-          for i in "${MODS[@]}"
-          do
-              REQS=$(jq -cr 'select(.requirements != []).requirements' ./"$i"/manifest.json)
-              ## Just for testing the pipeline with a subset of modules
-              ## if ! [[ "$i" =~ ^(googlecast|geizhals|fhem_forum|bt_presence|tuya)$ ]]; then
-              ##  continue
-              ## fi
-              ## End of test
-              if [[ -z $REQS ]]; then
-                continue
-              fi
-              ADD_PKGS=""
-              # skip problematic modules until solution found
-              if [[ "$i" =~ "object_detection" ]]; then 
-                continue 
-              fi
-              # skip spotify_connect_player because playwright dependency isn't supported on armhf
-              if [[ "$i" =~ "spotify_connect_player" ]]; then 
-                continue 
-              fi
-
-              if [[ "$i" =~ ^(eq3bt|gfprobt|ble_reset|blue_connect|object_detection)$ ]]; then 
-                ADD_PKGS="cmake ninja-build"
-              elif [[ "$i" =~ ^(seatconnect|skodaconnect|miio|xiaomi_gateway3|xiaomi_gateway3_device|pyit600|esphome|tuya|homekit)$ ]]; then 
-                ADD_PKGS="rustc cargo"
-              fi
-              JSON=$(echo $JSON | jq -c --argjson REQUIREMENTS $REQS --arg PACKAGES "$ADD_PKGS" --arg M "$i" '.include += [{"module": $M, "requirements": $REQUIREMENTS, "PKGS" : $PACKAGES} ]')
-          done
-          #echo $JSON
-          echo "matrix=$JSON" >> $GITHUB_OUTPUT
+          ${GITHUB_WORKSPACE}/scripts/get-deps.sh .
         shell: bash
 
   buildImages:
@@ -238,6 +212,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          filter: tree:0
 
       - name: check variables
         run: |
@@ -246,7 +222,8 @@ jobs:
 
       - name: write requirement for mod from matrix input
         run: |
-          echo '${{toJSON(matrix.requirements)}}'  | jq --raw-output -e '.[]' > ./requirements_mod.txt
+          touch ./requirements_mod.txt
+          echo '${{toJSON(matrix.requirements)}}' | jq --raw-output -e '.[]' > ./requirements_mod.txt || true
           cat ./requirements_mod.txt
 
       - name: Run Docker on tmpfs
