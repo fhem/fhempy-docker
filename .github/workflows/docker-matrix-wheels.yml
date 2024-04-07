@@ -37,7 +37,7 @@ jobs:
         uses: docker/setup-buildx-action@v3
         with:
           driver-opts: |
-            image=moby/buildkit:v0.12.4
+            image=moby/buildkit:latest
       
       - name: Get Python version from Dockerfile
         id: cache-key
@@ -123,7 +123,7 @@ jobs:
           cache-from: |
             type=gha,scope=base_image_stage_amd64
           cache-to: |
-            type=gha,scope=base_image_stage_amd64,mode=min
+            type=gha,scope=base_image_stage_amd64,mode=max
           load: false
 
       - name: Build armv7 base image and export to cache
@@ -138,12 +138,12 @@ jobs:
           cache-from: |
             type=gha,scope=base_image_stage_armv7
           cache-to: |
-            type=gha,scope=base_image_stage_armv7,mode=min
+            type=gha,scope=base_image_stage_armv7,mode=max
           load: false
 
       - name: generate requierementsfile for extra requirements
         run: |
-          # echo "cryptography" > requirements_extra.txt  
+          echo "cryptography" >> requirements_extra.txt
           echo "pyaml" >> requirements_extra.txt
           
           
@@ -240,7 +240,7 @@ jobs:
         uses: docker/setup-buildx-action@v3
         with:
           driver-opts: |
-            image=moby/buildkit:v0.12.4
+            image=moby/buildkit:latest
 
       - name: Extract Docker metadata
         id: meta-it
@@ -266,6 +266,7 @@ jobs:
         id: cache-wheels
         uses: actions/cache@v4
         with:
+          save-always: true
           path: ./wheelhouse
           key: wheels-${{ matrix.module }}-${{ env.IMAGE_VERSION }}
           restore-keys: |
