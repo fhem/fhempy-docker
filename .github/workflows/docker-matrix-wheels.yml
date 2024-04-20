@@ -255,14 +255,16 @@ jobs:
           image_version=$(grep -m 1 '^FROM' Dockerfile | cut -d ' ' -f2 | cut -d ':' -f2) 
           echo "IMAGE_VERSION_SHORT=${image_version%.*}" >> $GITHUB_ENV
           echo "IMAGE_VERSION=${image_version}" >> $GITHUB_ENV
-
-      - uses: actions/cache/restore@v4
+      - uses: Wandalen/wretry.action@v3.2.0
         name: restore base cache
         id: cache
         with:
-          path: ./wheelhouse
-          fail-on-cache-miss: true
-          key: wheels-${{ env.IMAGE_VERSION }}-${{ hashFiles('requirements.txt') }}
+          attempt_delay: 2000
+          action: actions/cache/restore@v4
+          with: |
+            path: ./wheelhouse
+            fail-on-cache-miss: true
+            key: wheels-${{ env.IMAGE_VERSION }}-${{ hashFiles('requirements.txt') }}
                
       - name: Init wheels cache
         id: cache-wheels
