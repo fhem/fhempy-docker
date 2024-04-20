@@ -206,6 +206,7 @@ jobs:
       IMAGE_NAME: ${{ github.repository }}
     strategy:
       max-parallel: 5
+      fail-fast: false
       matrix:
         ${{fromJson(needs.prepare_matrix.outputs.matrix)}}
 
@@ -260,8 +261,9 @@ jobs:
         id: cache
         with:
           path: ./wheelhouse
+          fail-on-cache-miss: true
           key: wheels-${{ env.IMAGE_VERSION }}-${{ hashFiles('requirements.txt') }}
-                  
+               
       - name: Init wheels cache
         id: cache-wheels
         uses: actions/cache@v4
