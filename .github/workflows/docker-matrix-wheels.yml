@@ -256,7 +256,7 @@ jobs:
           echo "IMAGE_VERSION_SHORT=${image_version%.*}" >> $GITHUB_ENV
           echo "IMAGE_VERSION=${image_version}" >> $GITHUB_ENV
       
-      - uses: Wandalen/wretry.action@v3.2.0
+      - uses: Wandalen/wretry.action@v3.4.0
         name: restore base cache with retry
         id: cache
         with:
