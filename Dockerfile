@@ -1,8 +1,8 @@
-#  syntax=docker.io/docker/dockerfile:1.6.0
+#  syntax=docker.io/docker/dockerfile:1.6.0@sha256:ac85f380a63b13dfcefa89046420e1781752bab202122f8f50032edf31be0021
 
 
 # Building wheels for later useage
-FROM python:3.12.3 as builder-base
+FROM python:3.12.3@sha256:f78ea8a345769eb3aa1c86cf147dfd68f1a4508ed56f9d7574e4687b02f44dd1 as builder-base
 
 #RUN curl --proto '=https' --tlsv1.2 https://sh.rustup.rs -sSf | sh -s -- -y
 
@@ -45,7 +45,7 @@ COPY --from=w-builder /wheels ./wheels
 
 
 # base fhempy will be installed
-FROM python:3.12.3 as base
+FROM python:3.12.3@sha256:f78ea8a345769eb3aa1c86cf147dfd68f1a4508ed56f9d7574e4687b02f44dd1 as base
 
 RUN apt update && \
     apt install dbus python-dbus-dev curl -y --no-install-recommends \
