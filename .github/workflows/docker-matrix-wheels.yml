@@ -42,7 +42,7 @@ jobs:
       - name: Get Python version from Dockerfile
         id: cache-key
         run: |
-          image_version=$(grep -m 1 '^FROM' Dockerfile | cut -d ' ' -f2 | cut -d ':' -f2) 
+          image_version=$(grep -m 1 '^FROM' Dockerfile | cut -d ' ' -f2 | cut -d ':' -f2 | cut -d '@' -f1) 
           echo "IMAGE_VERSION_SHORT=${image_version%.*}" >> $GITHUB_ENV
           echo "IMAGE_VERSION=${image_version}" >> $GITHUB_ENV
           
@@ -252,7 +252,7 @@ jobs:
       - name: Get Python version from Dockerfile
         id: cache-key
         run: |
-          image_version=$(grep -m 1 '^FROM' Dockerfile | cut -d ' ' -f2 | cut -d ':' -f2) 
+          image_version=$(grep -m 1 '^FROM' Dockerfile | cut -d ' ' -f2 | cut -d ':' -f2 | cut -d '@' -f1) 
           echo "IMAGE_VERSION_SHORT=${image_version%.*}" >> $GITHUB_ENV
           echo "IMAGE_VERSION=${image_version}" >> $GITHUB_ENV
       
@@ -461,7 +461,7 @@ jobs:
         id: extract_image
         run: |
           echo "image_name=$(grep -m 1 '^FROM' Dockerfile | cut -d ' ' -f2 | cut -d ':' -f1)" >> $GITHUB_OUTPUT
-          echo "image_version=$(grep -m 1 '^FROM' Dockerfile | cut -d ' ' -f2 | cut -d ':' -f2)" >> $GITHUB_OUTPUT
+          echo "image_version=$(grep -m 1 '^FROM' Dockerfile | cut -d ' ' -f2 | cut -d ':' -f2 | cut -d '@' -f1)" >> $GITHUB_OUTPUT
          
       - name: Update docs (readme.md)
         run: |
