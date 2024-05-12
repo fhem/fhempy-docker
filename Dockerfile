@@ -4,11 +4,12 @@
 # Building wheels for later useage
 FROM python:3.12.3@sha256:f78ea8a345769eb3aa1c86cf147dfd68f1a4508ed56f9d7574e4687b02f44dd1 as builder-base
 
-#RUN curl --proto '=https' --tlsv1.2 https://sh.rustup.rs -sSf | sh -s -- -y
+RUN curl --proto '=https' --tlsv1.2 https://sh.rustup.rs -sSf | sh -s -- --default-toolchain stable -y
+ENV PATH="/root/.cargo/bin:${PATH}"
 
 RUN <<eot
     apt update 
-    apt install rustc cargo python3-dev -y --no-install-recommends 
+    apt install python3-dev -y --no-install-recommends 
     # libssl-dev build-essential libffi-dev pkg-config librust-openssl-sys-dev librust-openssl-dev curl
     # cmake ninja-build
     # rust-openssl-sys 
