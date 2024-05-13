@@ -4,7 +4,8 @@
 # Building wheels for later useage
 FROM python:3.12.3@sha256:f78ea8a345769eb3aa1c86cf147dfd68f1a4508ed56f9d7574e4687b02f44dd1 as builder-base
 
-RUN curl --proto '=https' --tlsv1.2 https://sh.rustup.rs -sSf | sh -s -- --default-toolchain stable -y
+RUN curl --proto '=https' --tlsv1.2 https://sh.rustup.rs -sSf | sh -s -- --default-toolchain stable -y --profile=minimal \
+    && rm -rf /root/.rustup/tmp
 ENV PATH="/root/.cargo/bin:${PATH}"
 
 RUN <<eot
@@ -35,7 +36,7 @@ ARG RUSTFLAGS=" -C lto=no"
 RUN --mount=type=bind,source=./wheelhouse/,target=/oldwheels  <<eot
     export CARGO_BUILD_TARGET="$(rustc -vV | sed -n 's|host: ||p')"
     ARCHDIR=$(find /oldwheels -mindepth 1 -maxdepth 2 -regextype posix-extended -type d -regex  ".*/${TARGETOS}_${TARGETARCH}(_${TARGETVARIANT})?$") 
-    pip wheel --wheel-dir /wheels --find-links file:////$ARCHDIR/wheels -r ${REQUIREMENTS_FILE}
+    pip wheel --no-cache-dir --wheel-dir /wheels --find-links file:////$ARCHDIR/wheels -r ${REQUIREMENTS_FILE}
 eot
 
 # && pip wheel --wheel-dir /wheels 
