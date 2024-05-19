@@ -6,6 +6,7 @@ FROM python:3.12.3@sha256:f78ea8a345769eb3aa1c86cf147dfd68f1a4508ed56f9d7574e468
 
 RUN curl --proto '=https' --tlsv1.2 https://sh.rustup.rs -sSf | sh -s -- --default-toolchain stable -y --profile=minimal \
     && rm -rf /root/.rustup/tmp
+    
 ENV PATH="/root/.cargo/bin:${PATH}"
 
 RUN <<eot
@@ -30,8 +31,12 @@ ARG REQUIREMENTS_FILE=requirements.txt
 
 COPY ${REQUIREMENTS_FILE} ./
 
-ARG CARGO_NET_GIT_FETCH_WITH_CLI=true
-ARG RUSTFLAGS=" -C lto=no"
+ENV CARGO_NET_GIT_FETCH_WITH_CLI=true
+#ENV RUSTFLAGS=" -C lto=thin -C embed-bitcode=yes"
+ENV CFLAGS="-Os -fno-plt -flto=thin"
+ENV LDFLAGS="-Os -flto=thin -Wl,--as-needed"
+ENV RUSTFLAGS="-C opt-level=s"
+ENV ORJSON_DISABLE_YYJSON="true"
 
 RUN --mount=type=bind,source=./wheelhouse/,target=/oldwheels  <<eot
     export CARGO_BUILD_TARGET="$(rustc -vV | sed -n 's|host: ||p')"
