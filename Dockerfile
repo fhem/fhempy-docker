@@ -2,17 +2,13 @@
 
 
 # Building wheels for later useage
-FROM python:3.12.3@sha256:f78ea8a345769eb3aa1c86cf147dfd68f1a4508ed56f9d7574e4687b02f44dd1 as builder-base
+FROM python:3.12.3@sha256:3966b81808d864099f802080d897cef36c01550472ab3955fdd716d1c665acd6 as builder-base
 
     
 RUN <<eot
     apt update 
-    apt install python3-dev pkg-config libc6-dev libc6-dev-armel-cross -y --no-install-recommends 
-    # libssl-dev build-essential libffi-dev  librust-openssl-sys-dev librust-openssl-dev curl
-    # cmake ninja-build
-    # rust-openssl-sys 
-    # cargo rustc 
-    # dbus python-dbus-dev 
+    apt install python3-dev pkg-config  -y --no-install-recommends 
+    # libc6-dev libc6-dev-armel-cross
     rm -rf /var/lib/apt/lists/*   
 eot
 
@@ -21,17 +17,8 @@ RUN curl --proto '=https' --tlsv1.2 https://sh.rustup.rs -sSf | sh -s -- --defau
     && rm -rf /root/.rustup/tmp
 
 #ENV CFLAGS="-mfloat-abi=hard"
-RUN OPENSSL_VERSION="1.1.1w" \
-    wget https://www.openssl.org/source/old/1.1.1/openssl-1.1.1w.tar.gz \
-    && tar xvf openssl-1.1.1w.tar.gz \
-    && cd openssl-1.1.1w \
-    && ./config  -mfloat-abi=soft no-shared no-ssl2 no-ssl3 -fPIC --prefix=/usr/local/ssl \
-    && make && make install
 
 ENV PATH="/root/.cargo/bin:${PATH}"
-ENV OPENSSL_DIR="/usr/local/ssl"
-#ENV OPENSSL_INCLUDE_DIR="/usr/include/openssl/"
-#ENV OPENSSL_LIB_DIR="/usr/lib/arm-linux-gnueabihf/"
 
 # used for building wheels out of requirements.txt
 FROM builder-base as w-builder
@@ -64,7 +51,7 @@ COPY --from=w-builder /wheels ./wheels
 
 
 # base fhempy will be installed
-FROM python:3.12.3@sha256:f78ea8a345769eb3aa1c86cf147dfd68f1a4508ed56f9d7574e4687b02f44dd1 as base
+FROM python:3.12.3@sha256:3966b81808d864099f802080d897cef36c01550472ab3955fdd716d1c665acd6 as base
 
 RUN apt update && \
     apt install dbus python-dbus-dev curl -y --no-install-recommends \
