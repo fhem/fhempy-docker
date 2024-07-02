@@ -2,7 +2,7 @@
 
 
 # Building wheels for later useage
-FROM python:3.12.4@sha256:fce9bc7648ef917a5ab67176cf1c7eb41b110452e259736144bc22f32f3aa622 as builder-base
+FROM python:3.12.4@sha256:2eedc86b81f2336841f4eed06dff14937d37ec172eec655434fd478eacb1ea49 as builder-base
 
 #RUN curl --proto '=https' --tlsv1.2 https://sh.rustup.rs -sSf | sh -s -- -y
 
@@ -45,7 +45,7 @@ COPY --from=w-builder /wheels ./wheels
 
 
 # base fhempy will be installed
-FROM python:3.12.4@sha256:fce9bc7648ef917a5ab67176cf1c7eb41b110452e259736144bc22f32f3aa622 as base
+FROM python:3.12.4@sha256:2eedc86b81f2336841f4eed06dff14937d37ec172eec655434fd478eacb1ea49 as base
 
 RUN apt update && \
     apt install dbus python-dbus-dev curl -y --no-install-recommends \
