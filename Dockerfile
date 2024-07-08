@@ -4,19 +4,18 @@
 # Building wheels for later useage
 FROM python:3.12.4@sha256:d12b529fba98bcc93e2e2e837c0a60efaa6328775965a43c1b8161cfbd8f10f3 as builder-base
 
-#RUN curl --proto '=https' --tlsv1.2 https://sh.rustup.rs -sSf | sh -s -- -y
-
+    
 RUN <<eot
     apt update 
-    apt install rustc cargo python3-dev -y --no-install-recommends 
-    # libssl-dev build-essential libffi-dev pkg-config librust-openssl-sys-dev librust-openssl-dev curl
-    # cmake ninja-build
-    # rust-openssl-sys 
-    # cargo rustc 
-    # dbus python-dbus-dev 
-    rm -rf /var/lib/apt/lists/* 
-    
+    apt install python3-dev pkg-config  -y --no-install-recommends 
+    rm -rf /var/lib/apt/lists/*   
 eot
+
+
+RUN curl --proto '=https' --tlsv1.2 https://sh.rustup.rs -sSf | sh -s -- --default-toolchain stable -y --profile=minimal \
+    && rm -rf /root/.rustup/tmp
+
+ENV PATH="/root/.cargo/bin:${PATH}"
 
 # used for building wheels out of requirements.txt
 FROM builder-base as w-builder
@@ -34,7 +33,7 @@ ARG RUSTFLAGS=" -C lto=no"
 RUN --mount=type=bind,source=./wheelhouse/,target=/oldwheels  <<eot
     export CARGO_BUILD_TARGET="$(rustc -vV | sed -n 's|host: ||p')"
     ARCHDIR=$(find /oldwheels -mindepth 1 -maxdepth 2 -regextype posix-extended -type d -regex  ".*/${TARGETOS}_${TARGETARCH}(_${TARGETVARIANT})?$") 
-    pip wheel --wheel-dir /wheels --find-links file:////$ARCHDIR/wheels -r ${REQUIREMENTS_FILE}
+    pip wheel --no-cache-dir --wheel-dir /wheels --find-links file:////$ARCHDIR/wheels -r ${REQUIREMENTS_FILE}
 eot
 
 # && pip wheel --wheel-dir /wheels 
