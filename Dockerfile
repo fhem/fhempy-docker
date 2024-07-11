@@ -1,4 +1,4 @@
-#  syntax=docker.io/docker/dockerfile:1.6.0@sha256:ac85f380a63b13dfcefa89046420e1781752bab202122f8f50032edf31be0021
+#  syntax=docker.io/docker/dockerfile:1.9.0@sha256:fe40cf4e92cd0c467be2cfc30657a680ae2398318afd50b0c80585784c604f28
 
 
 # Building wheels for later useage
