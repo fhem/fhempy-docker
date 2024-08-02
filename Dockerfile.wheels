@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1@sha256:e87caa74dcb7d46cd820352bfea12591f3dba3ddc4285e19c7dcd13359f7cefd
 
 # base
-FROM python:3.12.4@sha256:b6f142bd70d2219c98c143094ad2a0b8cc882294a7fb2664377a7b68edfc5767 as base
+FROM python:3.12.4@sha256:bdc699ec9b18804a42e6ba43896e34df9a31053af0989f9425a6c515a19e3a96 as base
 RUN apt update && \
     apt install dbus python-dbus-dev build-essential libssl-dev libffi-dev python3-dev -y --no-install-recommends  \
     && rm -rf /var/lib/apt/lists/*
