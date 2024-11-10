@@ -331,7 +331,7 @@ jobs:
 
       - name: Install cosign
         if: github.event_name == 'release'
-        uses: sigstore/cosign-installer@v3.5.0
+        uses: sigstore/cosign-installer@v3.7.0
  
       # Login against a Docker registry if it is a release
       # https://github.com/docker/login-action
