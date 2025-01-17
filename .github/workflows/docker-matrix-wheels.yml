@@ -265,7 +265,7 @@ jobs:
           action: actions/cache/restore@v4
           with: |
             path: ./wheelhouse
-            fail-on-cache-miss: true
+            fail-on-cache-miss: false
             key: wheels-${{ env.IMAGE_VERSION }}-${{ hashFiles('requirements.txt') }}
                
       - name: Init wheels cache
