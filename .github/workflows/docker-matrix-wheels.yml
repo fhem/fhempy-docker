@@ -143,7 +143,7 @@ jobs:
 
       - name: generate requierementsfile for extra requirements
         run: |
-          #echo "cryptography" >> requirements_extra.txt
+          echo "cryptography" >> requirements_extra.txt
           echo "pyaml" >> requirements_extra.txt
           
           
@@ -265,7 +265,7 @@ jobs:
           action: actions/cache/restore@v4
           with: |
             path: ./wheelhouse
-            fail-on-cache-miss: true
+            fail-on-cache-miss: false
             key: wheels-${{ env.IMAGE_VERSION }}-${{ hashFiles('requirements.txt') }}
                
       - name: Init wheels cache

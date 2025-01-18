@@ -2,7 +2,7 @@
 
 
 # Building wheels for later useage
-FROM python:3.12.5@sha256:11aa4b620c15f855f66f02a7f3c1cd9cf843cc10f3edbcf158e5ebcd98d1f549 as builder-base
+FROM python:3.12.5@sha256:11aa4b620c15f855f66f02a7f3c1cd9cf843cc10f3edbcf158e5ebcd98d1f549 AS builder-base
 
     
 RUN <<eot
@@ -18,7 +18,7 @@ RUN curl --proto '=https' --tlsv1.2 https://sh.rustup.rs -sSf | sh -s -- --defau
 ENV PATH="/root/.cargo/bin:${PATH}"
 
 # used for building wheels out of requirements.txt
-FROM builder-base as w-builder
+FROM builder-base AS w-builder
 
 ARG TARGETOS 
 ARG TARGETARCH
@@ -61,7 +61,7 @@ RUN --mount=type=bind,source=./wheelhouse/,target=/wheels  <<eot
 eot
 
 # image for fhempy modules (final stage) module will be installed here
-FROM base as runtime
+FROM base AS runtime
 
 WORKDIR /usr/src/apps
 
