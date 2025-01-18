@@ -143,7 +143,7 @@ jobs:
 
       - name: generate requierementsfile for extra requirements
         run: |
-          #echo "cryptography" >> requirements_extra.txt
+          echo "cryptography" >> requirements_extra.txt
           echo "pyaml" >> requirements_extra.txt
           
           
