@@ -1,1 +1,2 @@
 fhempy==0.1.742
+setuptools   # Fixes missing dependencys to setuptools in some packages
