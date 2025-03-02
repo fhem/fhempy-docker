@@ -2,7 +2,7 @@
 
 
 # Building wheels for later useage
-FROM python:3.12.5@sha256:11aa4b620c15f855f66f02a7f3c1cd9cf843cc10f3edbcf158e5ebcd98d1f549 as builder-base
+FROM python:3.12.5@sha256:11aa4b620c15f855f66f02a7f3c1cd9cf843cc10f3edbcf158e5ebcd98d1f549 AS builder-base
 
     
 RUN <<eot
@@ -18,7 +18,7 @@ RUN curl --proto '=https' --tlsv1.2 https://sh.rustup.rs -sSf | sh -s -- --defau
 ENV PATH="/root/.cargo/bin:${PATH}"
 
 # used for building wheels out of requirements.txt
-FROM builder-base as w-builder
+FROM builder-base AS w-builder
 
 ARG TARGETOS 
 ARG TARGETARCH
@@ -44,7 +44,7 @@ COPY --from=w-builder /wheels ./wheels
 
 
 # base fhempy will be installed
-FROM python:3.12.5@sha256:11aa4b620c15f855f66f02a7f3c1cd9cf843cc10f3edbcf158e5ebcd98d1f549 as base
+FROM python:3.12.5@sha256:11aa4b620c15f855f66f02a7f3c1cd9cf843cc10f3edbcf158e5ebcd98d1f549 AS base
 
 RUN apt update && \
     apt install dbus python-dbus-dev curl -y --no-install-recommends \
@@ -55,13 +55,15 @@ COPY requirements.txt ./requirements.txt
 ARG TARGETOS 
 ARG TARGETARCH
 ARG TARGETVARIANT
-RUN --mount=type=bind,source=./wheelhouse/,target=/wheels  <<eot
+RUN --mount=type=bind,source=./wheelhouse,target=/wheels  <<eot
+    ls /wheels
     ARCHDIR=$(find /wheels -mindepth 1 -maxdepth 2 -regextype posix-extended -type d -regex  ".*/${TARGETOS}_${TARGETARCH}(_${TARGETVARIANT})?$") 
+    echo ${ARCHDIR}
     pip install --no-index --find-links file:////$ARCHDIR/wheels --no-cache -r requirements.txt 
 eot
 
 # image for fhempy modules (final stage) module will be installed here
-FROM base as runtime
+FROM base AS runtime
 
 WORKDIR /usr/src/apps
 

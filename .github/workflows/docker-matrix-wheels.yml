@@ -269,10 +269,9 @@ jobs:
             key: wheels-${{ env.IMAGE_VERSION }}-${{ hashFiles('requirements.txt') }}
                
       - name: Init wheels cache
-        id: cache-wheels
-        uses: actions/cache@v4
+        id: cache-wheels-restore
+        uses: actions/cache/restore@v4
         with:
-          save-always: true
           path: ./wheelhouse
           key: wheels-${{ matrix.module }}-${{ env.IMAGE_VERSION }}
           restore-keys: |
@@ -303,7 +302,21 @@ jobs:
           build-args: |
             REQUIREMENTS_FILE=requirements_mod.txt
           outputs: type=local,dest=./wheelhouse
+
+      - name: save wheels cache
+        id: cache-wheels-save
+        if: always() && steps.cache-wheels-restore.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ./wheelhouse
+          key: ${{ steps.cache-wheels-restore.outputs.cache-primary-key }}
         
+      - name: save as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheels-${{ matrix.module }}
+          path: ./wheelhouse
+          
       - name: Build for integration test 
         id: build-it
         uses: docker/build-push-action@v6.9.0
