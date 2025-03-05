@@ -8,6 +8,8 @@ on:
     branches:
       - main
       - 'releases/**'
+      - 'push-action/**'
+
   release:
     types: [ published  ]
 
@@ -193,6 +195,7 @@ jobs:
   buildImages:
     runs-on: ubuntu-latest
     needs: [prepare_build, prepare_matrix]
+    if: ${{ !startsWith(github.ref, 'refs/heads/push-action') }}
     permissions:
       contents: write
       packages: write
@@ -457,6 +460,7 @@ jobs:
   check-matrix:
     runs-on: ubuntu-latest
     needs: [buildImages,prepare_build]
+    if: ${{ ! failure() && ! cancelled()  }}
     permissions:
       contents: write
     steps:
