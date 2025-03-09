@@ -492,7 +492,7 @@ jobs:
           ESCAPED_DATA="$(echo "${IMAGE_LIST}" | sed 's/\n/\\n/g')"
           echo "--------"
           echo "$ESCAPED_DATA"
-          sed -e "s/{FHEMPY_VERSION}/${{ needs.prepare_build.outputs.fhempyV }}/" -e "s/{PYTHON_VERSION}/${{ steps.extract_image.outputs.image_version}}/" -e "s/{DEBIAN_RELEASE}/buster/" -e s,{IMAGE_TAG},${{ github.ref_name }}, < README.tmpl > README.md
+          sed -e "s/{FHEMPY_VERSION}/${{ needs.prepare_build.outputs.fhempyV }}/" -e "s/{PYTHON_VERSION}/${{ steps.extract_image.outputs.image_version}}/" -e "s/{DEBIAN_RELEASE}/bookworm/" -e s,{IMAGE_TAG},${{ github.ref_name }}, < README.tmpl > README.md
           sed -i -e "/{MODULES_IMAGE_LIST}/r modules.md" -e "/{MODULES_IMAGE_LIST}/d" README.md
 
       - name: Upload artifact
