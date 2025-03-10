@@ -509,7 +509,7 @@ jobs:
         run: |
           git config --global user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          git commit -m "README.md: Update Versions" -a && echo "::set-output name=status::true" || true
+            git commit -m "README.md: Update Versions" -a && echo "status=true" >> $GITHUB_OUTPUT || true
       
       - name: Push back to protected branch (main)
         uses: CasperWA/push-protected@v2
