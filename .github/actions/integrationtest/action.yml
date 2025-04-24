@@ -25,7 +25,7 @@ runs:
           images: base
 
       - name: Build base image
-        uses: docker/build-push-action@v6.15.0
+        uses: docker/build-push-action@v6.16.0
         id: docker_build_base
         with:
           context: .
@@ -46,7 +46,7 @@ runs:
           images: runtime
 
       - name: Build for integration test amd64 
-        uses: docker/build-push-action@v6.15.0
+        uses: docker/build-push-action@v6.16.0
         id: docker_build_runtime
         with:
           context: .
