@@ -65,7 +65,7 @@ jobs:
 
       - name: Build base wheels and export to cache
         id: build_basewheels_cross
-        uses: docker/build-push-action@v6.15.0
+        uses: docker/build-push-action@v6.16.0
         with:
           context: .
           file: Dockerfile
@@ -81,7 +81,7 @@ jobs:
           outputs: type=local,dest=./wheelhouse
 
       - name: cache wheel builder image amd64
-        uses: docker/build-push-action@v6.15.0
+        uses: docker/build-push-action@v6.16.0
         with:
           context: .
           file: Dockerfile
@@ -92,7 +92,7 @@ jobs:
           cache-from: type=local,src=/tmp/.buildx-cache
 
       - name: cache wheel builder image armv7
-        uses: docker/build-push-action@v6.15.0
+        uses: docker/build-push-action@v6.16.0
         with:
           context: .
           file: Dockerfile
@@ -116,7 +116,7 @@ jobs:
 
       - name: Build amd64 base image and export to cache
         id: build_base_amd64
-        uses: docker/build-push-action@v6.15.0
+        uses: docker/build-push-action@v6.16.0
         with:
           context: .
           file: Dockerfile
@@ -131,7 +131,7 @@ jobs:
 
       - name: Build armv7 base image and export to cache
         id: build_base_armv7
-        uses: docker/build-push-action@v6.15.0
+        uses: docker/build-push-action@v6.16.0
         with:
           context: .
           file: Dockerfile
@@ -151,7 +151,7 @@ jobs:
           
           
       - name: Build extra wheels 
-        uses: docker/build-push-action@v6.15.0
+        uses: docker/build-push-action@v6.16.0
         with:
           context: .
           file: Dockerfile
@@ -290,7 +290,7 @@ jobs:
           mkdir -p ./wheelhouse/linux_arm_v7
             
       - name: Build wheels for mod ${{ matrix.module }}
-        uses: docker/build-push-action@v6.15.0
+        uses: docker/build-push-action@v6.16.0
         timeout-minutes: 75
         with:
           context: .
@@ -323,7 +323,7 @@ jobs:
           
       - name: Build for integration test 
         id: build-it
-        uses: docker/build-push-action@v6.15.0
+        uses: docker/build-push-action@v6.16.0
         with:
           context: .
           file: Dockerfile
@@ -377,7 +377,7 @@ jobs:
             org.opencontainers.image.title=${{ env.IMAGE_NAME }}_${{ matrix.module }}
       
       - name: Build and push Docker image for all plattforms
-        uses: docker/build-push-action@v6.15.0
+        uses: docker/build-push-action@v6.16.0
         id: docker_build_runtime_cross
         with:
           context: .
