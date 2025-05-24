@@ -7,7 +7,6 @@ readarray -t MODS < <(find "$searchPath" -type f -name manifest.json -exec sh -c
 [ -z ${GITHUB_RUN_ID+x} ] && printf '%s\n' "${MODS[@]}"
 for i in "${MODS[@]}"
 do
-    [[ "$i" =~ "object_detection" ]] && continue;         # build is not successfull
     [[ "$i" =~ "spotify_connect_player" ]] && continue;   # skip because playwright dependency isn't supported on armhf
     [[ "$i" =~ ^core ]] && continue;                      # Core modules need no seperate image: https://github.com/fhempy/fhempy/issues/392
 
