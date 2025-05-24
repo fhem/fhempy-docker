@@ -10,7 +10,6 @@ do
     [[ "$i" =~ "object_detection" ]] && continue;         # build is not successfull
     [[ "$i" =~ "spotify_connect_player" ]] && continue;   # skip because playwright dependency isn't supported on armhf
     [[ "$i" =~ ^core ]] && continue;                      # Core modules need no seperate image: https://github.com/fhempy/fhempy/issues/392
-    [[ "$i" =~ ^websitetests ]] && continue;              # Integration tests fails: https://github.com/fhem/fhempy-docker/issues/171
 
     REQS=$(jq -cr 'select(.requirements != []).requirements' ./"$i"/manifest.json)
     [[ -z $REQS ]] &&  REQS="[]"
