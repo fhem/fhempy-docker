@@ -88,7 +88,7 @@ jobs:
           platforms: linux/amd64
           push: false
           target: w-builder
-          cache-to: type=gha,mode=min,scope=wheel_builder_stage_amd64
+          cache-to: type=gha,mode=max,scope=wheel_builder_stage_amd64
           cache-from: type=local,src=/tmp/.buildx-cache
 
       - name: cache wheel builder image armv7
@@ -99,7 +99,7 @@ jobs:
           platforms: linux/arm/v7
           push: false
           target: w-builder
-          cache-to: type=gha,mode=min,scope=wheel_builder_stage_armv7
+          cache-to: type=gha,mode=max,scope=wheel_builder_stage_armv7
           cache-from: type=local,src=/tmp/.buildx-cache
 
       - name: cache wheel builder image armv6
@@ -110,7 +110,7 @@ jobs:
           platforms: linux/arm/v6
           push: false
           target: w-builder
-          cache-to: type=gha,mode=min,scope=wheel_builder_stage_armv6
+          cache-to: type=gha,mode=max,scope=wheel_builder_stage_armv6
           cache-from: type=local,src=/tmp/.buildx-cache
 
 
