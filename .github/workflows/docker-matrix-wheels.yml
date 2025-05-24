@@ -76,7 +76,6 @@ jobs:
           cache-from: |
             type=gha,scope=wheel_builder_stage_amd64
             type=gha,scope=wheel_builder_stage_armv7
-            type=gha,scope=wheel_builder_stage_armv6
           load: false
           outputs: type=local,dest=./wheelhouse
 
@@ -88,7 +87,7 @@ jobs:
           platforms: linux/amd64
           push: false
           target: w-builder
-          cache-to: type=gha,mode=min,scope=wheel_builder_stage_amd64
+          cache-to: type=gha,mode=max,scope=wheel_builder_stage_amd64
           cache-from: type=local,src=/tmp/.buildx-cache
 
       - name: cache wheel builder image armv7
@@ -99,21 +98,10 @@ jobs:
           platforms: linux/arm/v7
           push: false
           target: w-builder
-          cache-to: type=gha,mode=min,scope=wheel_builder_stage_armv7
+          cache-to: type=gha,mode=max,scope=wheel_builder_stage_armv7
           cache-from: type=local,src=/tmp/.buildx-cache
 
-    #  - name: cache wheel builder image armv6
-    #    uses: docker/build-push-action@v5.1.0
-    #    with:
-    #      context: .
-    #      file: Dockerfile
-    #      platforms: linux/arm/v6
-    #      push: false
-    #      target: w-builder
-    #      cache-to: type=gha,mode=min,scope=wheel_builder_stage_armv6
-    #      cache-from: type=local,src=/tmp/.buildx-cache
-
-
+      
       - name: Build amd64 base image and export to cache
         id: build_base_amd64
         uses: docker/build-push-action@v6.17.0
@@ -302,7 +290,6 @@ jobs:
           cache-from: |
             type=gha,scope=wheel_builder_stage_amd64
             type=gha,scope=wheel_builder_stage_armv7
-            type=gha,scope=wheel_builder_stage_armv6
           build-args: |
             REQUIREMENTS_FILE=requirements_mod.txt
           outputs: type=local,dest=./wheelhouse
@@ -389,7 +376,6 @@ jobs:
           cache-to: type=local,dest=/tmp/.buildx-cache,mode=max
           cache-from: |
             type=gha,scope=base_image_stage_amd64
-            type=gha,scope=base_image_stage_armv6
             type=gha,scope=base_image_stage_armv7
           # type=gha,scope=runtime-stage-${{ matrix.module }}_${{ hashFiles('./requirements_mod.txt') }}-amd64
           # type=gha,scope=runtime-stage-${{ matrix.module }}_${{ hashFiles('./requirements_mod.txt') }}-armv7
