@@ -24,7 +24,7 @@ jobs:
       fhempyV: ${{steps.split_fhempyV.outputs.result}}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           filter: tree:0
 
@@ -159,7 +159,7 @@ jobs:
       matrix: ${{steps.getModules.outputs.matrix}}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           filter: tree:0
 
@@ -167,7 +167,7 @@ jobs:
         run: |
           echo "fhempyVersion=$(grep '^fhempy' requirements.txt | cut -d '=' -f3)" >> $GITHUB_ENV
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           repository: 'fhempy/fhempy'
           path: fhempyRepo
@@ -204,7 +204,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           filter: tree:0
 
@@ -452,7 +452,7 @@ jobs:
       contents: write
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       
       - uses: actions/download-artifact@v4
         if: ${{ !startsWith(github.ref, 'refs/heads/push-action') }}
