@@ -1,2 +1,2 @@
-fhempy==0.1.753
+fhempy==0.1.754
 setuptools   # Fixes missing dependencys to setuptools in some packages
