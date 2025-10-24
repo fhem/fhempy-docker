@@ -303,7 +303,7 @@ jobs:
           key: ${{ steps.cache-wheels-restore.outputs.cache-primary-key }}
         
       - name: save as artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: wheels-${{ matrix.module }}
           path: ./wheelhouse
@@ -410,7 +410,7 @@ jobs:
           echo "| ${{ matrix.module }} | ${{ fromJSON(steps.docker_build_runtime_cross.outputs.metadata)['image.name'] }} |" > ${{ matrix.module }}_result.md
       
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: artifact-${{ matrix.module }}
           path: ${{ matrix.module }}_result.md
@@ -454,7 +454,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v5
       
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v6
         if: ${{ !startsWith(github.ref, 'refs/heads/push-action') }}
         with:
           pattern: artifact-*
@@ -483,7 +483,7 @@ jobs:
 
       - name: Upload artifact
         if: ${{ !startsWith(github.ref, 'refs/heads/push-action') }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: readme
           path: README.md
