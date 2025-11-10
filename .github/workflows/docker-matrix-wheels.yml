@@ -237,7 +237,7 @@ jobs:
 
       - name: Extract Docker metadata
         id: meta-it
-        uses: docker/metadata-action@v5.7.0
+        uses: docker/metadata-action@v5.9.0
         with:
           images: runtime
 
@@ -349,7 +349,7 @@ jobs:
 
       - name: Extract Docker metadata
         id: meta
-        uses: docker/metadata-action@v5.7.0
+        uses: docker/metadata-action@v5.9.0
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}_${{ matrix.module }}
           flavor: |
