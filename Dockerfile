@@ -7,7 +7,7 @@ FROM python:3.13.4@sha256:b077ca6a99f3e8f96d686bf4c590ed59079b779ef33090db3fb7cf
     
 RUN <<eot
     apt update 
-    apt install python3-dev pkg-config  -y --no-install-recommends 
+    apt install python3-dev pkg-config cmake -y --no-install-recommends 
     rm -rf /var/lib/apt/lists/*   
 eot
 
