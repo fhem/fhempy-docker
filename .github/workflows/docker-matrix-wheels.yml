@@ -384,9 +384,8 @@ jobs:
 
       - name: show image details
         run: | 
-          echo "${{ steps.docker_build_runtime_cross.outputs.imageid }}"
           echo "${{ steps.docker_build_runtime_cross.outputs.digest }}"
-          echo '${{ steps.docker_build_runtime_cross.outputs.metadata }}'
+          echo "${{ steps.docker_build_runtime_cross.outputs.metadata }}" | jq .
       # Sign the resulting Docker image digest except on PRs.
       # This will only write to the public Rekor transparency log when the Docker
       # repository is public to avoid leaking data.  If you would like to publish
@@ -447,7 +446,7 @@ jobs:
   check-matrix:
     runs-on: ubuntu-latest
     needs: [buildImages,prepare_build]
-    if: ${{ ! failure() && ! cancelled()  }}
+    if: always() && !failure() && !cancelled() 
     permissions:
       contents: write
     steps:
