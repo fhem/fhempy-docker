@@ -10,7 +10,7 @@
       "automerge": true
     },
     {
-      "matchPackageNames": ["docker"],
+      "matchPackageNames": ["python"],
       "matchUpdateTypes": ["patch", "pin", "digest"],
       "minimumReleaseAge": "2 days",
       "automerge": true
