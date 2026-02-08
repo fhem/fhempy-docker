@@ -2,7 +2,7 @@
 
 
 # Building wheels for later useage
-FROM python:3.13.11@sha256:8b9c970a37115dd0ecfb1b86407ee5065757bb951a31702bbbee65413e8c5679 AS builder-base
+FROM python:3.13.12@sha256:5291052bfd4dd0613e428be4bf4cccc54fc1087f44a85247edff5a9fd3e6196d AS builder-base
 
     
 RUN <<eot
@@ -44,7 +44,7 @@ COPY --from=w-builder /wheels ./wheels
 
 
 # base fhempy will be installed
-FROM python:3.13.11@sha256:8b9c970a37115dd0ecfb1b86407ee5065757bb951a31702bbbee65413e8c5679 AS base
+FROM python:3.13.12@sha256:5291052bfd4dd0613e428be4bf4cccc54fc1087f44a85247edff5a9fd3e6196d AS base
 
 RUN apt update && \
     apt install dbus python-dbus-dev curl -y --no-install-recommends \
