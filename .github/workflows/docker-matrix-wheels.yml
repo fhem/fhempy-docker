@@ -34,7 +34,7 @@ jobs:
           echo "result=$(grep '^fhempy' requirements.txt | cut -d '=' -f3)" >> $GITHUB_OUTPUT
  
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@v4
 
       - name: Setup Docker buildx
         uses: docker/setup-buildx-action@v3
@@ -227,7 +227,7 @@ jobs:
           swap_location: '/mnt/swapfile'
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@v4
 
       - name: Setup Docker buildx
         uses: docker/setup-buildx-action@v3
