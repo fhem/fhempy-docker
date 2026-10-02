@@ -7,7 +7,7 @@ FROM python:3.13.15@sha256:6faba2c56370992b0456e11f781f00a09b7ecc3c4e97ef3e39163
     
 RUN <<eot
     apt update 
-    apt install python3-dev pkg-config cmake libdbus-1-dev -y --no-install-recommends 
+    apt install python3-dev pkg-config cmake libdbus-1-dev libgirepository1.0-dev -y --no-install-recommends 
     rm -rf /var/lib/apt/lists/*   
 eot
 
@@ -47,7 +47,7 @@ COPY --from=w-builder /wheels ./wheels
 FROM python:3.13.15@sha256:6faba2c56370992b0456e11f781f00a09b7ecc3c4e97ef3e39163d01a94aea8d AS base
 
 RUN apt update && \
-    apt install dbus python-dbus-dev curl -y --no-install-recommends \
+    apt install dbus python-dbus-dev curl libgirepository-1.0-1 gir1.2-glib-2.0 -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/* 
 
 COPY requirements.txt ./requirements.txt
