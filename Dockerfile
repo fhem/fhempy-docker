@@ -7,7 +7,7 @@ FROM python:3.13.15@sha256:6faba2c56370992b0456e11f781f00a09b7ecc3c4e97ef3e39163
     
 RUN <<eot
     apt update 
-    apt install python3-dev pkg-config cmake -y --no-install-recommends 
+    apt install python3-dev pkg-config cmake libdbus-1-dev -y --no-install-recommends 
     rm -rf /var/lib/apt/lists/*   
 eot
 
