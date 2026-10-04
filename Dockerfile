@@ -2,7 +2,7 @@
 
 
 # Building wheels for later useage
-FROM python:3.13.15@sha256:6faba2c56370992b0456e11f781f00a09b7ecc3c4e97ef3e39163d01a94aea8d AS builder-base
+FROM python:3.13.15@sha256:5b6557f37abf12bfc64315bba192b342aec6dbf367aed30b7db51082aec73a1e AS builder-base
 
     
 RUN <<eot
@@ -44,7 +44,7 @@ COPY --from=w-builder /wheels ./wheels
 
 
 # base fhempy will be installed
-FROM python:3.13.15@sha256:6faba2c56370992b0456e11f781f00a09b7ecc3c4e97ef3e39163d01a94aea8d AS base
+FROM python:3.13.15@sha256:5b6557f37abf12bfc64315bba192b342aec6dbf367aed30b7db51082aec73a1e AS base
 
 RUN apt update && \
     apt install dbus python-dbus-dev curl libgirepository-1.0-1 gir1.2-glib-2.0 -y --no-install-recommends \
