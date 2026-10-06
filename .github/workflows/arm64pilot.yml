@@ -1,0 +1,122 @@
+name: arm64-pilot
+
+# Pilot: build a single module image natively for amd64 and arm64
+# and run the integration test on both, before arm64 is added to the main matrix.
+
+on:
+  push:
+    paths:
+      - '.github/workflows/arm64-pilot.yml'
+  workflow_dispatch:
+    inputs:
+      module:
+        description: 'fhempy module to build'
+        required: true
+        default: 'google_weather'
+
+env:
+  MODULE: ${{ inputs.module || 'google_weather' }}
+
+jobs:
+  build-and-test:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-24.04
+            archdir: linux_amd64
+          - platform: linux/arm64
+            runner: ubuntu-24.04-arm
+            archdir: linux_arm64
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          filter: tree:0
+
+      - name: Split fhempy Version
+        run: |
+          echo "fhempyVersion=$(grep '^fhempy' requirements.txt | cut -d '=' -f3)" >> $GITHUB_ENV
+
+      - uses: actions/checkout@v7
+        with:
+          repository: 'fhempy/fhempy'
+          path: fhempyRepo
+          filter: tree:0
+          ref: 'v${{ env.fhempyVersion }}'
+
+      - name: write requirements for module ${{ env.MODULE }}
+        working-directory: ./fhempyRepo/FHEM/bindings/python/fhempy/lib
+        shell: bash
+        run: |
+          env -u GITHUB_RUN_ID ${GITHUB_WORKSPACE}/scripts/get-deps.sh . | tail -n 1 \
+            | jq -e --raw-output --arg M "$MODULE" '.include[] | select(.module == $M) | .requirements[]' \
+            > ${GITHUB_WORKSPACE}/requirements_mod.txt || true
+          cat ${GITHUB_WORKSPACE}/requirements_mod.txt
+
+      - name: Setup Docker buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: create wheelhouse
+        run: mkdir -p ./wheelhouse/${{ matrix.archdir }}
+
+      - name: Build base wheels
+        uses: docker/build-push-action@v7.4.0
+        with:
+          context: .
+          file: Dockerfile
+          platforms: ${{ matrix.platform }}
+          push: false
+          target: export-stage
+          outputs: type=local,dest=./wheelhouse/${{ matrix.archdir }}
+
+      - name: Build wheels for module ${{ env.MODULE }}
+        uses: docker/build-push-action@v7.4.0
+        with:
+          context: .
+          file: Dockerfile
+          platforms: ${{ matrix.platform }}
+          push: false
+          target: export-stage
+          outputs: type=local,dest=./wheels_mod
+          build-args: |
+            REQUIREMENTS_FILE=requirements_mod.txt
+
+      - name: merge module wheels into wheelhouse
+        run: |
+          cp -n ./wheels_mod/wheels/* ./wheelhouse/${{ matrix.archdir }}/wheels/ || true
+          ls ./wheelhouse/${{ matrix.archdir }}/wheels
+
+      - name: Build runtime image
+        id: build-it
+        uses: docker/build-push-action@v7.4.0
+        with:
+          context: .
+          file: Dockerfile
+          platforms: ${{ matrix.platform }}
+          push: false
+          load: true
+          target: runtime
+          tags: fhempy-docker_${{ env.MODULE }}:${{ matrix.archdir }}
+
+      - name: Show image architecture
+        run: docker image inspect --format '{{.Os}}/{{.Architecture}}{{if .Variant}}/{{.Variant}}{{end}}' ${{ steps.build-it.outputs.imageid }}
+
+      - name: Run integration tests
+        shell: bash
+        run: |
+          ./scripts/test-integration.sh ${{ steps.build-it.outputs.imageid }}
+
+      - name: Export image
+        if: matrix.archdir == 'linux_arm64'
+        run: docker save fhempy-docker_${{ env.MODULE }}:${{ matrix.archdir }} | gzip > image_${{ matrix.archdir }}.tar.gz
+
+      - name: Upload image as artifact
+        if: matrix.archdir == 'linux_arm64'
+        uses: actions/upload-artifact@v7
+        with:
+          name: image-${{ env.MODULE }}-${{ matrix.archdir }}
+          path: image_${{ matrix.archdir }}.tar.gz
+          retention-days: 7
