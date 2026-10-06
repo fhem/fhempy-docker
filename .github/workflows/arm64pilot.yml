@@ -5,8 +5,7 @@ name: arm64-pilot
 
 on:
   push:
-    paths:
-      - '.github/workflows/arm64-pilot.yml'
+
   workflow_dispatch:
     inputs:
       module:
