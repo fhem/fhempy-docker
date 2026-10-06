@@ -54,7 +54,7 @@ jobs:
         uses: actions/cache@v6
         with:
           path: ./wheelhouse
-          key: wheels-${{ env.IMAGE_VERSION }}-${{ hashFiles('requirements.txt') }}
+          key: wheels-${{ env.IMAGE_VERSION }}-amd64-armv7-arm64-${{ hashFiles('requirements.txt') }}
           restore-keys: |
            wheels-${{ env.IMAGE_VERSION }}
            wheels-${{ env.IMAGE_VERSION_SHORT }}
@@ -69,13 +69,14 @@ jobs:
         with:
           context: .
           file: Dockerfile
-          platforms: linux/amd64,linux/arm/v7
+          platforms: linux/amd64,linux/arm/v7,linux/arm64
           push: false
           target: export-stage
           cache-to: type=local,dest=/tmp/.buildx-cache,mode=max
           cache-from: |
             type=gha,scope=wheel_builder_stage_amd64
             type=gha,scope=wheel_builder_stage_armv7
+            type=gha,scope=wheel_builder_stage_arm64
           load: false
           outputs: type=local,dest=./wheelhouse
 
@@ -99,6 +100,17 @@ jobs:
           push: false
           target: w-builder
           cache-to: type=gha,mode=max,scope=wheel_builder_stage_armv7
+          cache-from: type=local,src=/tmp/.buildx-cache
+
+      - name: cache wheel builder image arm64
+        uses: docker/build-push-action@v7.4.0
+        with:
+          context: .
+          file: Dockerfile
+          platforms: linux/arm64
+          push: false
+          target: w-builder
+          cache-to: type=gha,mode=max,scope=wheel_builder_stage_arm64
           cache-from: type=local,src=/tmp/.buildx-cache
 
       
@@ -132,6 +144,21 @@ jobs:
             type=gha,scope=base_image_stage_armv7,mode=max
           load: false
 
+      - name: Build arm64 base image and export to cache
+        id: build_base_arm64
+        uses: docker/build-push-action@v7.4.0
+        with:
+          context: .
+          file: Dockerfile
+          platforms: linux/arm64
+          push: false
+          target: base
+          cache-from: |
+            type=gha,scope=base_image_stage_arm64
+          cache-to: |
+            type=gha,scope=base_image_stage_arm64,mode=max
+          load: false
+
       - name: generate requierementsfile for extra requirements
         run: |
           #echo "cryptography" >> requirements_extra.txt
@@ -143,7 +170,7 @@ jobs:
         with:
           context: .
           file: Dockerfile
-          platforms: linux/amd64,linux/arm/v7
+          platforms: linux/amd64,linux/arm/v7,linux/arm64
           push: false
           target: export-stage
           load: false
@@ -258,14 +285,14 @@ jobs:
           with: |
             path: ./wheelhouse
             fail-on-cache-miss: true
-            key: wheels-${{ env.IMAGE_VERSION }}-${{ hashFiles('requirements.txt') }}
+            key: wheels-${{ env.IMAGE_VERSION }}-amd64-armv7-arm64-${{ hashFiles('requirements.txt') }}
                
       - name: Init wheels cache
         id: cache-wheels-restore
         uses: actions/cache/restore@v6
         with:
           path: ./wheelhouse
-          key: wheels-${{ matrix.module }}-${{ env.IMAGE_VERSION }}
+          key: wheels-${{ matrix.module }}-${{ env.IMAGE_VERSION }}-amd64-armv7-arm64
           restore-keys: |
             wheels-${{ matrix.module }}-${{ env.IMAGE_VERSION }}
             wheels-${{ matrix.module }}-
@@ -276,6 +303,7 @@ jobs:
         run: |
           mkdir -p ./wheelhouse/linux_amd64
           mkdir -p ./wheelhouse/linux_arm_v7
+          mkdir -p ./wheelhouse/linux_arm64
             
       - name: Build wheels for mod ${{ matrix.module }}
         uses: docker/build-push-action@v7.4.0
@@ -283,13 +311,14 @@ jobs:
         with:
           context: .
           file: Dockerfile
-          platforms: linux/amd64,linux/arm/v7
+          platforms: linux/amd64,linux/arm/v7,linux/arm64
           push: false
           load: false
           target: export-stage
           cache-from: |
             type=gha,scope=wheel_builder_stage_amd64
             type=gha,scope=wheel_builder_stage_armv7
+            type=gha,scope=wheel_builder_stage_arm64
           build-args: |
             REQUIREMENTS_FILE=requirements_mod.txt
           outputs: type=local,dest=./wheelhouse
@@ -333,6 +362,26 @@ jobs:
         run: |
           ./scripts/test-integration.sh ${{ steps.build-it.outputs.imageid }}
 
+      - name: Build arm64 image for integration test
+        id: build-it-arm64
+        uses: docker/build-push-action@v7.4.0
+        with:
+          context: .
+          file: Dockerfile
+          platforms: linux/arm64
+          push: false
+          load: true
+          target: runtime
+          cache-from: |
+            type=gha,scope=base_image_stage_arm64
+          build-args: |
+            REQUIREMENTS_FILE=requirements_mod.txt
+
+      - name: Run integration tests arm64
+        shell: bash
+        run: |
+          ./scripts/test-integration.sh ${{ steps.build-it-arm64.outputs.imageid }}
+
       - name: Install cosign
         if: github.event_name == 'release'
         uses: sigstore/cosign-installer@v4.1.2
@@ -368,7 +417,7 @@ jobs:
         id: docker_build_runtime_cross
         with:
           context: .
-          platforms: linux/arm/v7,linux/amd64
+          platforms: linux/arm/v7,linux/amd64,linux/arm64
           push: ${{ github.event_name == 'release' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
@@ -377,6 +426,7 @@ jobs:
           cache-from: |
             type=gha,scope=base_image_stage_amd64
             type=gha,scope=base_image_stage_armv7
+            type=gha,scope=base_image_stage_arm64
           # type=gha,scope=runtime-stage-${{ matrix.module }}_${{ hashFiles('./requirements_mod.txt') }}-amd64
           # type=gha,scope=runtime-stage-${{ matrix.module }}_${{ hashFiles('./requirements_mod.txt') }}-armv7
           build-args: |
