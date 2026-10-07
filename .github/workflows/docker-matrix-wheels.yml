@@ -19,9 +19,26 @@ on:
 jobs:
   prepare_build:
     if: ${{ !startsWith(github.ref, 'refs/heads/push-action') }}
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.runner }}
     outputs:
       fhempyV: ${{steps.split_fhempyV.outputs.result}}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-latest
+            archdir: linux_amd64
+            scope: amd64
+          - platform: linux/arm64
+            runner: ubuntu-24.04-arm
+            archdir: linux_arm64
+            scope: arm64
+          # armv7 is emulated (QEMU), the arm64 runners can't run AArch32 natively
+          - platform: linux/arm/v7
+            runner: ubuntu-24.04-arm
+            archdir: linux_arm_v7
+            scope: armv7
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
@@ -32,8 +49,9 @@ jobs:
         id: split_fhempyV
         run: |
           echo "result=$(grep '^fhempy' requirements.txt | cut -d '=' -f3)" >> $GITHUB_OUTPUT
- 
+
       - name: Set up QEMU
+        if: matrix.scope == 'armv7'
         uses: docker/setup-qemu-action@v4
 
       - name: Setup Docker buildx
@@ -41,149 +59,83 @@ jobs:
         with:
           driver-opts: |
             image=moby/buildkit:latest
-      
+
       - name: Get Python version from Dockerfile
         id: cache-key
         run: |
-          image_version=$(grep -m 1 '^FROM' Dockerfile | cut -d ' ' -f2 | cut -d ':' -f2 | cut -d '@' -f1) 
+          image_version=$(grep -m 1 '^FROM' Dockerfile | cut -d ' ' -f2 | cut -d ':' -f2 | cut -d '@' -f1)
           echo "IMAGE_VERSION_SHORT=${image_version%.*}" >> $GITHUB_ENV
           echo "IMAGE_VERSION=${image_version}" >> $GITHUB_ENV
-          
+
+      # one cache per architecture, otherwise parallel jobs would try to save the same key
+      # the unprefixed wheels-<pyver> keys are the old shared caches (both archs inside), kept as fallback
       - name: Init wheels cache
         id: cache-wheels
         uses: actions/cache@v6
         with:
           path: ./wheelhouse
-          key: wheels-${{ env.IMAGE_VERSION }}-amd64-armv7-arm64-${{ hashFiles('requirements.txt') }}
+          key: wheels-${{ matrix.archdir }}-${{ env.IMAGE_VERSION }}-${{ hashFiles('requirements.txt') }}
           restore-keys: |
-           wheels-${{ env.IMAGE_VERSION }}
-           wheels-${{ env.IMAGE_VERSION_SHORT }}
-           wheels-
-                
+            wheels-${{ matrix.archdir }}-${{ env.IMAGE_VERSION }}
+            wheels-${{ matrix.archdir }}-${{ env.IMAGE_VERSION_SHORT }}
+            wheels-${{ matrix.archdir }}-
+            wheels-${{ env.IMAGE_VERSION }}
+            wheels-${{ env.IMAGE_VERSION_SHORT }}
+
       - name: create cachedir
-        run: mkdir -p ./wheelhouse
+        run: mkdir -p ./wheelhouse/${{ matrix.archdir }}
 
       - name: Build base wheels and export to cache
-        id: build_basewheels_cross
         uses: docker/build-push-action@v7.4.0
         with:
           context: .
           file: Dockerfile
-          platforms: linux/amd64,linux/arm/v7,linux/arm64
+          platforms: ${{ matrix.platform }}
           push: false
           target: export-stage
-          cache-to: type=local,dest=/tmp/.buildx-cache,mode=max
-          cache-from: |
-            type=gha,scope=wheel_builder_stage_amd64
-            type=gha,scope=wheel_builder_stage_armv7
-            type=gha,scope=wheel_builder_stage_arm64
+          cache-to: type=gha,mode=max,scope=wheel_builder_stage_${{ matrix.scope }}
+          cache-from: type=gha,scope=wheel_builder_stage_${{ matrix.scope }}
           load: false
-          outputs: type=local,dest=./wheelhouse
+          outputs: type=local,dest=./wheelhouse/${{ matrix.archdir }}
 
-      - name: cache wheel builder image amd64
+      - name: Build base image and export to cache
         uses: docker/build-push-action@v7.4.0
         with:
           context: .
           file: Dockerfile
-          platforms: linux/amd64
-          push: false
-          target: w-builder
-          cache-to: type=gha,mode=max,scope=wheel_builder_stage_amd64
-          cache-from: type=local,src=/tmp/.buildx-cache
-
-      - name: cache wheel builder image armv7
-        uses: docker/build-push-action@v7.4.0
-        with:
-          context: .
-          file: Dockerfile
-          platforms: linux/arm/v7
-          push: false
-          target: w-builder
-          cache-to: type=gha,mode=max,scope=wheel_builder_stage_armv7
-          cache-from: type=local,src=/tmp/.buildx-cache
-
-      - name: cache wheel builder image arm64
-        uses: docker/build-push-action@v7.4.0
-        with:
-          context: .
-          file: Dockerfile
-          platforms: linux/arm64
-          push: false
-          target: w-builder
-          cache-to: type=gha,mode=max,scope=wheel_builder_stage_arm64
-          cache-from: type=local,src=/tmp/.buildx-cache
-
-      
-      - name: Build amd64 base image and export to cache
-        id: build_base_amd64
-        uses: docker/build-push-action@v7.4.0
-        with:
-          context: .
-          file: Dockerfile
-          platforms: linux/amd64
+          platforms: ${{ matrix.platform }}
           push: false
           target: base
-          cache-from: |
-            type=gha,scope=base_image_stage_amd64
-          cache-to: |
-            type=gha,scope=base_image_stage_amd64,mode=max
-          load: false
-
-      - name: Build armv7 base image and export to cache
-        id: build_base_armv7
-        uses: docker/build-push-action@v7.4.0
-        with:
-          context: .
-          file: Dockerfile
-          platforms: linux/arm/v7
-          push: false
-          target: base
-          cache-from: |
-            type=gha,scope=base_image_stage_armv7
-          cache-to: |
-            type=gha,scope=base_image_stage_armv7,mode=max
-          load: false
-
-      - name: Build arm64 base image and export to cache
-        id: build_base_arm64
-        uses: docker/build-push-action@v7.4.0
-        with:
-          context: .
-          file: Dockerfile
-          platforms: linux/arm64
-          push: false
-          target: base
-          cache-from: |
-            type=gha,scope=base_image_stage_arm64
-          cache-to: |
-            type=gha,scope=base_image_stage_arm64,mode=max
+          cache-from: type=gha,scope=base_image_stage_${{ matrix.scope }}
+          cache-to: type=gha,scope=base_image_stage_${{ matrix.scope }},mode=max
           load: false
 
       - name: generate requierementsfile for extra requirements
         run: |
           #echo "cryptography" >> requirements_extra.txt
           echo "pyaml" >> requirements_extra.txt
-          
-          
-      - name: Build extra wheels 
+
+      - name: Build extra wheels
         uses: docker/build-push-action@v7.4.0
         with:
           context: .
           file: Dockerfile
-          platforms: linux/amd64,linux/arm/v7,linux/arm64
+          platforms: ${{ matrix.platform }}
           push: false
           target: export-stage
           load: false
-          outputs: type=local,dest=./wheelhouse
+          cache-from: type=gha,scope=wheel_builder_stage_${{ matrix.scope }}
+          outputs: type=local,dest=./wheelhouse/${{ matrix.archdir }}
           build-args:
             REQUIREMENTS_FILE=requirements_extra.txt
-    
+
   prepare_matrix:
     #name:  Find fhempy modules 
     #needs: prepare_build
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{steps.getModules.outputs.matrix}}
+      matrix_platforms: ${{steps.crossPlatforms.outputs.matrix}}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
@@ -208,26 +160,37 @@ jobs:
           ${GITHUB_WORKSPACE}/scripts/get-deps.sh .
         shell: bash
 
+      - name: Combine modules with platforms
+        id: crossPlatforms
+        env:
+          MODULES: ${{ steps.getModules.outputs.matrix }}
+        run: |
+          PLATFORMS='[
+            {"platform":"linux/amd64","runner":"ubuntu-latest","archdir":"linux_amd64","scope":"amd64"},
+            {"platform":"linux/arm64","runner":"ubuntu-24.04-arm","archdir":"linux_arm64","scope":"arm64"},
+            {"platform":"linux/arm/v7","runner":"ubuntu-24.04-arm","archdir":"linux_arm_v7","scope":"armv7"}
+          ]'
+          echo "matrix=$(echo "$MODULES" | jq -c --argjson p "$PLATFORMS" '{include: [.include[] as $m | $p[] | $m + .]}')" >> $GITHUB_OUTPUT
+
+
   buildImages:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.runner }}
     needs: [prepare_build, prepare_matrix]
     if: ${{ !startsWith(github.ref, 'refs/heads/push-action') }}
     permissions:
       contents: write
       packages: write
-      # This is used to complete the identity challenge
-      # with sigstore/fulcio when running outside of PRs.
-      id-token: write
     env:
       # Use docker.io for Docker Hub if empty
       REGISTRY: ghcr.io
       # github.repository as <account>/<repo>
       IMAGE_NAME: ${{ github.repository }}
     strategy:
-      max-parallel: 5
+      max-parallel: 10
       fail-fast: false
       matrix:
-        ${{fromJson(needs.prepare_matrix.outputs.matrix)}}
+        # module x platform (see prepare_matrix)
+        ${{fromJson(needs.prepare_matrix.outputs.matrix_platforms)}}
 
     steps:
       - name: Checkout repository
@@ -246,7 +209,9 @@ jobs:
           echo '${{toJSON(matrix.requirements)}}' | jq --raw-output -e '.[]' > ./requirements_mod.txt || true
           cat ./requirements_mod.txt
 
+      # arm runners are skipped, not verified to work there
       - name: Run Docker on tmpfs
+        if: matrix.runner == 'ubuntu-latest'
         uses: sidey79/docker-on-tmpfs@main
         with:
           tmpfs_size: 6
@@ -254,6 +219,7 @@ jobs:
           swap_location: '/mnt/swapfile'
 
       - name: Set up QEMU
+        if: matrix.scope == 'armv7'
         uses: docker/setup-qemu-action@v4
 
       - name: Setup Docker buildx
@@ -262,19 +228,13 @@ jobs:
           driver-opts: |
             image=moby/buildkit:latest
 
-      - name: Extract Docker metadata
-        id: meta-it
-        uses: docker/metadata-action@v6.2.0
-        with:
-          images: runtime
-
       - name: Get Python version from Dockerfile
         id: cache-key
         run: |
-          image_version=$(grep -m 1 '^FROM' Dockerfile | cut -d ' ' -f2 | cut -d ':' -f2 | cut -d '@' -f1) 
+          image_version=$(grep -m 1 '^FROM' Dockerfile | cut -d ' ' -f2 | cut -d ':' -f2 | cut -d '@' -f1)
           echo "IMAGE_VERSION_SHORT=${image_version%.*}" >> $GITHUB_ENV
           echo "IMAGE_VERSION=${image_version}" >> $GITHUB_ENV
-      
+
       - uses: Wandalen/wretry.action@v3.8.0
         name: restore base cache with retry
         id: cache
@@ -285,43 +245,38 @@ jobs:
           with: |
             path: ./wheelhouse
             fail-on-cache-miss: true
-            key: wheels-${{ env.IMAGE_VERSION }}-amd64-armv7-arm64-${{ hashFiles('requirements.txt') }}
-               
+            key: wheels-${{ matrix.archdir }}-${{ env.IMAGE_VERSION }}-${{ hashFiles('requirements.txt') }}
+
       - name: Init wheels cache
         id: cache-wheels-restore
         uses: actions/cache/restore@v6
         with:
           path: ./wheelhouse
-          key: wheels-${{ matrix.module }}-${{ env.IMAGE_VERSION }}-amd64-armv7-arm64
+          key: wheels-${{ matrix.module }}-${{ matrix.archdir }}-${{ env.IMAGE_VERSION }}
           restore-keys: |
-            wheels-${{ matrix.module }}-${{ env.IMAGE_VERSION }}
-            wheels-${{ matrix.module }}-
-            wheels-${{ env.IMAGE_VERSION }}-${{ hashFiles('requirements.txt') }}
-            wheels-${{ env.IMAGE_VERSION }}
-              
+            wheels-${{ matrix.module }}-${{ matrix.archdir }}-${{ env.IMAGE_VERSION }}
+            wheels-${{ matrix.module }}-${{ matrix.archdir }}-
+            wheels-${{ matrix.archdir }}-${{ env.IMAGE_VERSION }}-${{ hashFiles('requirements.txt') }}
+            wheels-${{ matrix.archdir }}-${{ env.IMAGE_VERSION }}
+
       - name: create cachedir if not exists
         run: |
-          mkdir -p ./wheelhouse/linux_amd64
-          mkdir -p ./wheelhouse/linux_arm_v7
-          mkdir -p ./wheelhouse/linux_arm64
-            
+          mkdir -p ./wheelhouse/${{ matrix.archdir }}
+
       - name: Build wheels for mod ${{ matrix.module }}
         uses: docker/build-push-action@v7.4.0
         timeout-minutes: 75
         with:
           context: .
           file: Dockerfile
-          platforms: linux/amd64,linux/arm/v7,linux/arm64
+          platforms: ${{ matrix.platform }}
           push: false
           load: false
           target: export-stage
-          cache-from: |
-            type=gha,scope=wheel_builder_stage_amd64
-            type=gha,scope=wheel_builder_stage_armv7
-            type=gha,scope=wheel_builder_stage_arm64
+          cache-from: type=gha,scope=wheel_builder_stage_${{ matrix.scope }}
           build-args: |
             REQUIREMENTS_FILE=requirements_mod.txt
-          outputs: type=local,dest=./wheelhouse
+          outputs: type=local,dest=./wheelhouse/${{ matrix.archdir }}
 
       - name: save wheels cache
         id: cache-wheels-save
@@ -330,62 +285,40 @@ jobs:
         with:
           path: ./wheelhouse
           key: ${{ steps.cache-wheels-restore.outputs.cache-primary-key }}
-        
+
       - name: save as artifact
         uses: actions/upload-artifact@v7
         with:
-          name: wheels-${{ matrix.module }}
+          name: wheels-${{ matrix.module }}-${{ matrix.archdir }}
           path: ./wheelhouse
-          
-      - name: Build for integration test 
+
+      # armv7 is only emulated and therefore not tested
+      - name: Build for integration test
         id: build-it
+        if: matrix.scope != 'armv7'
         uses: docker/build-push-action@v7.4.0
         with:
           context: .
           file: Dockerfile
-          platforms: linux/amd64
+          platforms: ${{ matrix.platform }}
           push: false
           load: true
           target: runtime
-          #cache-to: type=gha,scope=runtime-stage-${{ matrix.module }}_${{ hashFiles('./requirements_mod.txt') }}-amd64,ignore-error=true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
           cache-from: |
-            type=gha,scope=base_image_stage_amd64
-          # type=gha,scope=runtime-stage-${{ matrix.module }}_${{ hashFiles('./requirements_mod.txt') }}-amd64
+            type=gha,scope=base_image_stage_${{ matrix.scope }}
           build-args: |
             REQUIREMENTS_FILE=requirements_mod.txt
-          # PKGS=${{ matrix.PKGS }}
-  
+
+      - name: Show image architecture
+        if: matrix.scope != 'armv7'
+        run: docker image inspect --format '{{.Os}}/{{.Architecture}}{{if .Variant}}/{{.Variant}}{{end}}' ${{ steps.build-it.outputs.imageid }}
+
       - name: Run integration tests
+        if: matrix.scope != 'armv7'
         shell: bash
         run: |
           ./scripts/test-integration.sh ${{ steps.build-it.outputs.imageid }}
 
-      - name: Build arm64 image for integration test
-        id: build-it-arm64
-        uses: docker/build-push-action@v7.4.0
-        with:
-          context: .
-          file: Dockerfile
-          platforms: linux/arm64
-          push: false
-          load: true
-          target: runtime
-          cache-from: |
-            type=gha,scope=base_image_stage_arm64
-          build-args: |
-            REQUIREMENTS_FILE=requirements_mod.txt
-
-      - name: Run integration tests arm64
-        shell: bash
-        run: |
-          ./scripts/test-integration.sh ${{ steps.build-it-arm64.outputs.imageid }}
-
-      - name: Install cosign
-        if: github.event_name == 'release'
-        uses: sigstore/cosign-installer@v4.1.2
- 
       # Login against a Docker registry if it is a release
       # https://github.com/docker/login-action
       - name: Log into registry ${{ env.REGISTRY }}
@@ -395,6 +328,85 @@ jobs:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v6.2.0
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}_${{ matrix.module }}
+          labels: |
+            org.opencontainers.image.title=${{ env.IMAGE_NAME }}_${{ matrix.module }}
+
+      # Every platform is pushed by digest only, the tags are set on the manifest list in the merge job
+      - name: Build and push Docker image by digest
+        uses: docker/build-push-action@v7.4.0
+        id: docker_build_runtime
+        with:
+          context: .
+          platforms: ${{ matrix.platform }}
+          labels: ${{ steps.meta.outputs.labels }}
+          target: runtime
+          outputs: type=image,name=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}_${{ matrix.module }},push-by-digest=true,name-canonical=true,push=${{ github.event_name == 'release' }}
+          cache-from: |
+            type=gha,scope=base_image_stage_${{ matrix.scope }}
+          build-args: |
+            PKGS=${{ matrix.PKGS }}
+
+      # Marker for the merge job: contains the digest on release, only a placeholder otherwise
+      - name: Export digest
+        env:
+          DIGEST: ${{ steps.docker_build_runtime.outputs.digest }}
+        run: |
+          mkdir -p ${{ runner.temp }}/digests
+          if [ "${{ github.event_name }}" == "release" ]; then
+            touch "${{ runner.temp }}/digests/${DIGEST#sha256:}"
+          else
+            touch "${{ runner.temp }}/digests/none-${{ matrix.archdir }}"
+          fi
+
+      - name: Upload digest
+        uses: actions/upload-artifact@v7
+        with:
+          name: digests-${{ matrix.module }}-${{ matrix.archdir }}
+          path: ${{ runner.temp }}/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  merge:
+    runs-on: ubuntu-latest
+    needs: [buildImages, prepare_matrix]
+    # run per module, even if other modules failed; a module with a failed platform fails in "check digests"
+    if: ${{ always() && !cancelled() && needs.buildImages.result != 'skipped' }}
+    permissions:
+      contents: read
+      packages: write
+      # This is used to complete the identity challenge
+      # with sigstore/fulcio when running outside of PRs.
+      id-token: write
+    env:
+      REGISTRY: ghcr.io
+      IMAGE_NAME: ${{ github.repository }}
+    strategy:
+      fail-fast: false
+      matrix:
+        ${{fromJson(needs.prepare_matrix.outputs.matrix)}}
+    steps:
+      - name: Download digests
+        uses: actions/download-artifact@v8
+        with:
+          path: ${{ runner.temp }}/digests
+          pattern: digests-${{ matrix.module }}-*
+          merge-multiple: true
+
+      - name: check digests
+        working-directory: ${{ runner.temp }}/digests
+        run: |
+          ls -l
+          # amd64, arm64, armv7
+          [ "$(ls | wc -l)" -eq 3 ] || { echo "digests of not all platforms available for ${{ matrix.module }}"; exit 1; }
+
+      - name: Setup Docker buildx
+        uses: docker/setup-buildx-action@v4
 
       - name: Extract Docker metadata
         id: meta
@@ -411,54 +423,49 @@ jobs:
             type=ref,event=pr
           labels: |
             org.opencontainers.image.title=${{ env.IMAGE_NAME }}_${{ matrix.module }}
-      
-      - name: Build and push Docker image for all plattforms
-        uses: docker/build-push-action@v7.4.0
-        id: docker_build_runtime_cross
+
+      - name: Install cosign
+        if: github.event_name == 'release'
+        uses: sigstore/cosign-installer@v4.1.2
+
+      - name: Log into registry ${{ env.REGISTRY }}
+        if: github.event_name == 'release'
+        uses: docker/login-action@v4.6.0
         with:
-          context: .
-          platforms: linux/arm/v7,linux/amd64,linux/arm64
-          push: ${{ github.event_name == 'release' }}
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          target: runtime
-          cache-to: type=local,dest=/tmp/.buildx-cache,mode=max
-          cache-from: |
-            type=gha,scope=base_image_stage_amd64
-            type=gha,scope=base_image_stage_armv7
-            type=gha,scope=base_image_stage_arm64
-          # type=gha,scope=runtime-stage-${{ matrix.module }}_${{ hashFiles('./requirements_mod.txt') }}-amd64
-          # type=gha,scope=runtime-stage-${{ matrix.module }}_${{ hashFiles('./requirements_mod.txt') }}-armv7
-          build-args: |
-            PKGS=${{ matrix.PKGS }}
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: show image details
-        run: | 
-          echo "${{ steps.docker_build_runtime_cross.outputs.imageid  }}"
-          echo "${{ steps.docker_build_runtime_cross.outputs.digest }}"
+      - name: Create manifest list and push
+        if: github.event_name == 'release'
+        working-directory: ${{ runner.temp }}/digests
+        run: |
+          docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
+            $(printf '${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}_${{ matrix.module }}@sha256:%s ' *)
 
-      # Sign the resulting Docker image digest except on PRs.
-      # This will only write to the public Rekor transparency log when the Docker
-      # repository is public to avoid leaking data.  If you would like to publish
-      # transparency data even for private images, pass --force to cosign below.
+      # Sign the resulting manifest digest, only on release
       # https://github.com/sigstore/cosign
       - name: Sign the published Docker image
-        if: ${{ github.event_name == 'release' }}
+        if: github.event_name == 'release'
         env:
           TAGS: ${{ steps.meta.outputs.tags }}
-          DIGEST: ${{ steps.docker_build_runtime_cross.outputs.digest }}
-        # This step uses the identity token to provision an ephemeral certificate
-        # against the sigstore community Fulcio instance.
-        run: echo "${TAGS}" | xargs -I {} cosign sign --yes {}@${DIGEST}
+        run: |
+          FIRST_TAG=$(echo "${TAGS}" | head -n 1)
+          DIGEST=$(docker buildx imagetools inspect "${FIRST_TAG}" --format '{{.Manifest.Digest}}')
+          docker buildx imagetools inspect "${FIRST_TAG}"
+          echo "${TAGS}" | xargs -I {} cosign sign --yes {}@${DIGEST}
 
       - name: Create Job Summary
+        env:
+          TAGS: ${{ steps.meta.outputs.tags }}
         run: |
+          IMAGE_NAMES=$(echo "${TAGS}" | paste -sd, -)
           echo "### Image report for : ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
           echo "| Module | Image name  |" >> $GITHUB_STEP_SUMMARY
           echo "|-------|----------------------------------------------------------------------|" >> $GITHUB_STEP_SUMMARY
-          echo "| ${{ matrix.module }} | ${{ fromJSON(steps.docker_build_runtime_cross.outputs.metadata)['image.name'] }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| ${{ matrix.module }} | ${{ fromJSON(steps.docker_build_runtime_cross.outputs.metadata)['image.name'] }} |" > ${{ matrix.module }}_result.md
-      
+          echo "| ${{ matrix.module }} | ${IMAGE_NAMES} |" >> $GITHUB_STEP_SUMMARY
+          echo "| ${{ matrix.module }} | ${IMAGE_NAMES} |" > ${{ matrix.module }}_result.md
+
       - name: Upload artifact
         uses: actions/upload-artifact@v7
         with:
@@ -466,37 +473,9 @@ jobs:
           path: ${{ matrix.module }}_result.md
           if-no-files-found: warn
 
-      #- name: cache armv7 image
-      #  uses: docker/build-push-action@v5.1.0
-      #  if: always()
-      #  with:
-      #    context: .
-      #    platforms: linux/arm/v7
-      #    push: false
-      #    load: false
-      #    target: runtime
-      #    cache-from: type=local,src=/tmp/.buildx-cache
-      #    cache-to: type=gha,scope=runtime-stage-${{ matrix.module }}_${{ hashFiles('./requirements_mod.txt') }}-armv7
-      #    build-args: |
-      #      PKGS=${{ matrix.PKGS }}
-
-      #- name: cache amd64 image
-      #  if: always()
-      #  uses: docker/build-push-action@v5.1.0
-      #  with:
-      #    context: .
-      #    platforms: linux/amd64
-      #    push: false
-      #    load: false
-      #    target: runtime
-      #    cache-from: type=local,src=/tmp/.buildx-cache
-      #    cache-to: type=gha,scope=runtime-stage-${{ matrix.module }}_${{ hashFiles('./requirements_mod.txt') }}-amd64
-      #    build-args: |
-      #      PKGS=${{ matrix.PKGS }}
-  
   check-matrix:
     runs-on: ubuntu-latest
-    needs: [buildImages,prepare_build]
+    needs: [merge,prepare_build]
     if: always() && !failure() && !cancelled() 
     permissions:
       contents: write
