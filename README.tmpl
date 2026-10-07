@@ -8,6 +8,9 @@ If you want two modules, you have to start two containers.
 * Debian {DEBIAN_RELEASE}
 * Python {PYTHON_VERSION}
 * fhempy {FHEMPY_VERSION}
+* Platforms: `linux/amd64`, `linux/arm64`, `linux/arm/v7`
+
+On a Raspberry Pi 5 (64 bit OS) docker pulls the `linux/arm64` variant automatically. The `linux/arm/v7` images are not able to start there.
 
 
 # How to use with docker-compose
