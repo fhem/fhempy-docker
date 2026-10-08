@@ -421,8 +421,15 @@ jobs:
             type=semver,pattern={{major}},enable=${{ github.event.release.prerelease == 0 }}
             type=ref,event=branch
             type=ref,event=pr
+            type=ref,event=tag
           labels: |
             org.opencontainers.image.title=${{ env.IMAGE_NAME }}_${{ matrix.module }}
+
+      - name: check tags
+        env:
+          TAGS: ${{ steps.meta.outputs.tags }}
+        run: |
+          [ -n "${TAGS}" ] || { echo "::error::No image tag generated for ref ${{ github.ref }}, release tags must be valid semver, e.g. v2.0.0 or v2.0.0-alpha.1"; exit 1; }
 
       - name: Install cosign
         if: github.event_name == 'release'
