@@ -19,28 +19,85 @@ Running fhempy in a docker environment is done by starting the container and con
 Example is assuming, that your FHEM network is named `net` and already defined as in [fhem-docker](https://github.com/fhem/fhem-docker/blob/dev/docker-compose.yml)
 
 ```
-  fhempy:
+  fhempy-googleweather:
+    container_name: fhempy-googleweather
     networks:
       - net
-    image: ghcr.io/fhem/fhempy-docker-<modulename>:{IMAGE_TAG}
+    image: ghcr.io/fhem/fhempy-docker_google_weather:{IMAGE_TAG}
+
+  fhempy-mqtt:
+    container_name: fhempy-mqtt
+    networks:
+      - net
+    image: ghcr.io/fhem/fhempy-docker_mqtt_ha_discovery:{IMAGE_TAG}
  ```
+
+The image name is `ghcr.io/fhem/fhempy-docker_<module>` (see the table below).
+Give every container a fixed name (`container_name`), you need it in the FHEM definition.
 
 To start your container right away:
     
-    docker run -d --name fhempy ghcr.io/fhem/fhempy-docker-<modulename>:{IMAGE_TAG}
+    docker run -d --name fhempy-googleweather ghcr.io/fhem/fhempy-docker_google_weather:{IMAGE_TAG}
 
-# How to use fhempy 
+# How the containers are connected to FHEM
 
 As noted in the upstream repository, fhempy runs not in the same container as fhem.
 So you have to follow, the remote peer setup instructions.
 
+```mermaid
+flowchart LR
+    subgraph fhem["FHEM container"]
+        d1["fhempy device<br/>weather<br/>(google_weather)"]
+        d2["fhempy device<br/>mqtt<br/>(mqtt_ha_discovery)"]
+        io1["BindingsIo<br/>fhempy_weather"]
+        io2["BindingsIo<br/>fhempy_mqtt"]
+        d1 -- "IODev" --> io1
+        d2 -- "IODev" --> io2
+    end
+    subgraph c1["Container fhempy-googleweather"]
+        m1["fhempy with<br/>google_weather only"]
+    end
+    subgraph c2["Container fhempy-mqtt"]
+        m2["fhempy with<br/>mqtt_ha_discovery only"]
+    end
+    io1 -- "WebSocket, port 15733<br/>(opened by FHEM)" --> m1
+    io2 -- "WebSocket, port 15733<br/>(opened by FHEM)" --> m2
+```
+
+- Every container runs **one** module and listens on port `15733`. FHEM opens the connection to it.
+- In FHEM you need **one `BindingsIo` per container**. It only is the connection, it does not know the module.
+- The module is chosen by the `fhempy` device (`define <name> fhempy <module> ...`). The attribute `IODev` decides **which container** handles this device.
+- Containers only contain the dependencies of their own module and can not install anything at runtime. A device which is handled by the wrong container fails with `Module failed to load: <module> ... No module named '...'`.
+
 Example:
-- Container ist named fhempy-googleweather
+- Containers are named `fhempy-googleweather` and `fhempy-mqtt`
 - FHEM and fhempy are on the same network
 - Containernames can bei resolved via DNS
 
-In FHEM a BindingsIO Definition must be defined, pointing to the container:
-`define fhempy_peer_IP BindingsIo fhempy-googleweather:15733 fhempy`
+In FHEM a `BindingsIo` definition must be defined for each container, pointing to the container name:
+```
+define fhempy_weather BindingsIo fhempy-googleweather:15733 fhempy
+define fhempy_mqtt BindingsIo fhempy-mqtt:15733 fhempy
+```
+
+Wait until both devices are in state `opened`, then define the fhempy devices and set `IODev` directly:
+```
+define weather fhempy google_weather Berlin
+attr weather IODev fhempy_weather
+
+define mqtt fhempy mqtt_ha_discovery
+attr mqtt IODev fhempy_mqtt
+```
+
+Check with `list <device>` that `IODev` is the `BindingsIo` of the right container. If you define the device before the `BindingsIo` is `opened`, the state `fhempy server offline` can stay in the device although the connection works. Check the container log, if you are not sure.
+
+## Automatically created `fhempy_peer_<IP>` devices
+
+fhempy announces itself via mDNS. After the first container is connected, it searches the network for other fhempy containers which are not yet connected to FHEM and creates a `BindingsIo` named `fhempy_peer_<IP>` (with the IP address, not the container name) for each of them.
+This is meant for fhempy instances in the same local network, but it is not needed if you define the containers by name:
+- If such a peer already exists, defining your own `BindingsIo` for the same container fails with `already defined and using the same port`. Use the peer (you can `rename` it) or define yours first.
+- If a container gets a new IP address (e.g. after recreating it), the peer points to whatever container has this IP now. Prefer `BindingsIo` definitions with the container name or use fixed IP addresses.
+- Deleting a `BindingsIo` can stop the corresponding container, restart it afterwards.
 
 # Supported Modules and their image
 
