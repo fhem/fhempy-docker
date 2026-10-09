@@ -2,7 +2,7 @@
 
 
 # Building wheels for later useage
-FROM python:3.13.15@sha256:5b6557f37abf12bfc64315bba192b342aec6dbf367aed30b7db51082aec73a1e AS builder-base
+FROM python:3.13.15-trixie@sha256:82c46c08c991d3d3ff10476ac5e386c2c28f27bbd3985a02c5e39fe99ab272eb AS builder-base
 
     
 RUN <<eot
@@ -44,10 +44,10 @@ COPY --from=w-builder /wheels ./wheels
 
 
 # base fhempy will be installed
-FROM python:3.13.15@sha256:5b6557f37abf12bfc64315bba192b342aec6dbf367aed30b7db51082aec73a1e AS base
+FROM python:3.13.15-slim-trixie@sha256:7c61056e61ac89e852de05f3dc6fa51a6dd2181797bceed46aa725dd7cb2cd3b AS base
 
 RUN apt update && \
-    apt install dbus python-dbus-dev curl libgirepository-1.0-1 gir1.2-glib-2.0 -y --no-install-recommends \
+    apt install dbus python-dbus-dev curl git libgirepository-1.0-1 gir1.2-glib-2.0 -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/* 
 
 COPY requirements.txt ./requirements.txt
@@ -80,9 +80,17 @@ COPY requirements_mod.txt ./requirements.txt
 # Disable installing from INDEX
 ENV PIP_NO_INDEX=1 
 
+# The slim image has no compiler; some modules (e.g. git+ requirements) are built here.
+# Build tools are installed temporarily and removed again in the same layer.
+ARG BUILD_PKGS="gcc libc6-dev libbluetooth-dev"
 RUN --mount=type=bind,source=./wheelhouse/,target=/wheels  <<eot
+  apt update
+  apt install -y --no-install-recommends $BUILD_PKGS
   ARCHDIR=$(find /wheels -mindepth 1 -maxdepth 2 -regextype posix-extended -type d -regex  ".*/${TARGETOS}_${TARGETARCH}(_${TARGETVARIANT})?$") 
   pip install --find-links file:////$ARCHDIR/wheels --no-cache -r requirements.txt 
+  apt-mark manual libbluetooth3
+  apt purge -y --auto-remove $BUILD_PKGS
+  rm -rf /var/lib/apt/lists/*
 eot
   #export RUSTFLAGS=" -C lto=no" 
   #export CARGO_BUILD_TARGET="$(rustc -vV | sed -n 's|host: ||p')"

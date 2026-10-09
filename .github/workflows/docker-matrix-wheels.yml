@@ -503,7 +503,7 @@ jobs:
         id: extract_image
         run: |
           echo "image_name=$(grep -m 1 '^FROM' Dockerfile | cut -d ' ' -f2 | cut -d ':' -f1)" >> $GITHUB_OUTPUT
-          echo "image_version=$(grep -m 1 '^FROM' Dockerfile | cut -d ' ' -f2 | cut -d ':' -f2 | cut -d '@' -f1)" >> $GITHUB_OUTPUT
+          echo "image_version=$(grep -m 1 '^FROM' Dockerfile | cut -d ' ' -f2 | cut -d ':' -f2 | cut -d '@' -f1 | sed 's/-.*//')" >> $GITHUB_OUTPUT
          
       - name: Update docs (readme.md)
         if: ${{ !startsWith(github.ref, 'refs/heads/push-action') }}
