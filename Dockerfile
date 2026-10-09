@@ -47,7 +47,7 @@ COPY --from=w-builder /wheels ./wheels
 FROM python:3.13.15-slim-trixie@sha256:7c61056e61ac89e852de05f3dc6fa51a6dd2181797bceed46aa725dd7cb2cd3b AS base
 
 RUN apt update && \
-    apt install dbus python-dbus-dev curl libgirepository-1.0-1 gir1.2-glib-2.0 -y --no-install-recommends \
+    apt install dbus python-dbus-dev curl git libgirepository-1.0-1 gir1.2-glib-2.0 -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/* 
 
 COPY requirements.txt ./requirements.txt
