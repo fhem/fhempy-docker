@@ -80,9 +80,17 @@ COPY requirements_mod.txt ./requirements.txt
 # Disable installing from INDEX
 ENV PIP_NO_INDEX=1 
 
+# The slim image has no compiler; some modules (e.g. git+ requirements) are built here.
+# Build tools are installed temporarily and removed again in the same layer.
+ARG BUILD_PKGS="gcc libc6-dev libbluetooth-dev"
 RUN --mount=type=bind,source=./wheelhouse/,target=/wheels  <<eot
+  apt update
+  apt install -y --no-install-recommends $BUILD_PKGS
   ARCHDIR=$(find /wheels -mindepth 1 -maxdepth 2 -regextype posix-extended -type d -regex  ".*/${TARGETOS}_${TARGETARCH}(_${TARGETVARIANT})?$") 
   pip install --find-links file:////$ARCHDIR/wheels --no-cache -r requirements.txt 
+  apt-mark manual libbluetooth3
+  apt purge -y --auto-remove $BUILD_PKGS
+  rm -rf /var/lib/apt/lists/*
 eot
   #export RUSTFLAGS=" -C lto=no" 
   #export CARGO_BUILD_TARGET="$(rustc -vV | sed -n 's|host: ||p')"
