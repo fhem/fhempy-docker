@@ -5,7 +5,7 @@ Docker Containers with [fhempy](https://github.com/fhempy/fhempy) which can be c
 If you want two modules, you have to start two containers.
 
 
-* Debian trixie
+* Debian trixie (slim Python base image)
 * Python 3.13.15
 * fhempy 0.1.764
 
