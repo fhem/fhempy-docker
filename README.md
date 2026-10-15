@@ -6,8 +6,11 @@ If you want two modules, you have to start two containers.
 
 
 * Debian trixie (slim Python base image)
-* Python 3.13.15
-* fhempy 0.1.764
+* Python 3.13.16
+* fhempy 0.1.786
+* Platforms: `linux/amd64`, `linux/arm64`, `linux/arm/v7`
+
+On a Raspberry Pi 5 (64 bit OS) docker pulls the `linux/arm64` variant automatically. The `linux/arm/v7` images are not able to start there.
 
 
 # How to use with docker-compose
@@ -20,13 +23,13 @@ Example is assuming, that your FHEM network is named `net` and already defined a
     container_name: fhempy-googleweather
     networks:
       - net
-    image: ghcr.io/fhem/fhempy-docker_google_weather:1.8.0
+    image: ghcr.io/fhem/fhempy-docker_google_weather:2.0.1
 
   fhempy-mqtt:
     container_name: fhempy-mqtt
     networks:
       - net
-    image: ghcr.io/fhem/fhempy-docker_mqtt_ha_discovery:1.8.0
+    image: ghcr.io/fhem/fhempy-docker_mqtt_ha_discovery:2.0.1
  ```
 
 The image name is `ghcr.io/fhem/fhempy-docker_<module>` (see the table below).
@@ -34,7 +37,7 @@ Give every container a fixed name (`container_name`), you need it in the FHEM de
 
 To start your container right away:
     
-    docker run -d --name fhempy-googleweather ghcr.io/fhem/fhempy-docker_google_weather:1.8.0
+    docker run -d --name fhempy-googleweather ghcr.io/fhem/fhempy-docker_google_weather:2.0.1
 
 # How the containers are connected to FHEM
 
@@ -100,67 +103,68 @@ This is meant for fhempy instances in the same local network, but it is not need
 
 | Module | Image name  |
 |------|-------|
-| aktionsfinder | ghcr.io/fhem/fhempy-docker_aktionsfinder:1.8.0,ghcr.io/fhem/fhempy-docker_aktionsfinder:1,ghcr.io/fhem/fhempy-docker_aktionsfinder:latest |
-| alphaesscloud | ghcr.io/fhem/fhempy-docker_alphaesscloud:1.8.0,ghcr.io/fhem/fhempy-docker_alphaesscloud:1,ghcr.io/fhem/fhempy-docker_alphaesscloud:latest |
-| arp_presence | ghcr.io/fhem/fhempy-docker_arp_presence:1.8.0,ghcr.io/fhem/fhempy-docker_arp_presence:1,ghcr.io/fhem/fhempy-docker_arp_presence:latest |
-| ble_monitor | ghcr.io/fhem/fhempy-docker_ble_monitor:1.8.0,ghcr.io/fhem/fhempy-docker_ble_monitor:1,ghcr.io/fhem/fhempy-docker_ble_monitor:latest |
-| ble_presence | ghcr.io/fhem/fhempy-docker_ble_presence:1.8.0,ghcr.io/fhem/fhempy-docker_ble_presence:1,ghcr.io/fhem/fhempy-docker_ble_presence:latest |
-| ble_reset | ghcr.io/fhem/fhempy-docker_ble_reset:1.8.0,ghcr.io/fhem/fhempy-docker_ble_reset:1,ghcr.io/fhem/fhempy-docker_ble_reset:latest |
-| blue_connect | ghcr.io/fhem/fhempy-docker_blue_connect:1.8.0,ghcr.io/fhem/fhempy-docker_blue_connect:1,ghcr.io/fhem/fhempy-docker_blue_connect:latest |
-| bt_presence | ghcr.io/fhem/fhempy-docker_bt_presence:1.8.0,ghcr.io/fhem/fhempy-docker_bt_presence:1,ghcr.io/fhem/fhempy-docker_bt_presence:latest |
-| ddnssde | ghcr.io/fhem/fhempy-docker_ddnssde:1.8.0,ghcr.io/fhem/fhempy-docker_ddnssde:1,ghcr.io/fhem/fhempy-docker_ddnssde:latest |
-| discover_ble | ghcr.io/fhem/fhempy-docker_discover_ble:1.8.0,ghcr.io/fhem/fhempy-docker_discover_ble:1,ghcr.io/fhem/fhempy-docker_discover_ble:latest |
-| discover_mdns | ghcr.io/fhem/fhempy-docker_discover_mdns:1.8.0,ghcr.io/fhem/fhempy-docker_discover_mdns:1,ghcr.io/fhem/fhempy-docker_discover_mdns:latest |
-| discover_upnp | ghcr.io/fhem/fhempy-docker_discover_upnp:1.8.0,ghcr.io/fhem/fhempy-docker_discover_upnp:1,ghcr.io/fhem/fhempy-docker_discover_upnp:latest |
-| dlna_dmr | ghcr.io/fhem/fhempy-docker_dlna_dmr:1.8.0,ghcr.io/fhem/fhempy-docker_dlna_dmr:1,ghcr.io/fhem/fhempy-docker_dlna_dmr:latest |
-| energie_gv_at | ghcr.io/fhem/fhempy-docker_energie_gv_at:1.8.0,ghcr.io/fhem/fhempy-docker_energie_gv_at:1,ghcr.io/fhem/fhempy-docker_energie_gv_at:latest |
-| eq3bt | ghcr.io/fhem/fhempy-docker_eq3bt:1.8.0,ghcr.io/fhem/fhempy-docker_eq3bt:1,ghcr.io/fhem/fhempy-docker_eq3bt:latest |
-| erelax_vaillant | ghcr.io/fhem/fhempy-docker_erelax_vaillant:1.8.0,ghcr.io/fhem/fhempy-docker_erelax_vaillant:1,ghcr.io/fhem/fhempy-docker_erelax_vaillant:latest |
-| esphome | ghcr.io/fhem/fhempy-docker_esphome:1.8.0,ghcr.io/fhem/fhempy-docker_esphome:1,ghcr.io/fhem/fhempy-docker_esphome:latest |
-| fhem_forum | ghcr.io/fhem/fhempy-docker_fhem_forum:1.8.0,ghcr.io/fhem/fhempy-docker_fhem_forum:1,ghcr.io/fhem/fhempy-docker_fhem_forum:latest |
-| fusionsolar | ghcr.io/fhem/fhempy-docker_fusionsolar:1.8.0,ghcr.io/fhem/fhempy-docker_fusionsolar:1,ghcr.io/fhem/fhempy-docker_fusionsolar:latest |
-| geizhals | ghcr.io/fhem/fhempy-docker_geizhals:1.8.0,ghcr.io/fhem/fhempy-docker_geizhals:1,ghcr.io/fhem/fhempy-docker_geizhals:latest |
-| gfprobt | ghcr.io/fhem/fhempy-docker_gfprobt:1.8.0,ghcr.io/fhem/fhempy-docker_gfprobt:1,ghcr.io/fhem/fhempy-docker_gfprobt:latest |
-| github_backup | ghcr.io/fhem/fhempy-docker_github_backup:1.8.0,ghcr.io/fhem/fhempy-docker_github_backup:1,ghcr.io/fhem/fhempy-docker_github_backup:latest |
-| github_restore | ghcr.io/fhem/fhempy-docker_github_restore:1.8.0,ghcr.io/fhem/fhempy-docker_github_restore:1,ghcr.io/fhem/fhempy-docker_github_restore:latest |
-| goodwe | ghcr.io/fhem/fhempy-docker_goodwe:1.8.0,ghcr.io/fhem/fhempy-docker_goodwe:1,ghcr.io/fhem/fhempy-docker_goodwe:latest |
-| google_weather | ghcr.io/fhem/fhempy-docker_google_weather:1.8.0,ghcr.io/fhem/fhempy-docker_google_weather:1,ghcr.io/fhem/fhempy-docker_google_weather:latest |
-| googlecast | ghcr.io/fhem/fhempy-docker_googlecast:1.8.0,ghcr.io/fhem/fhempy-docker_googlecast:1,ghcr.io/fhem/fhempy-docker_googlecast:latest |
-| gree_climate | ghcr.io/fhem/fhempy-docker_gree_climate:1.8.0,ghcr.io/fhem/fhempy-docker_gree_climate:1,ghcr.io/fhem/fhempy-docker_gree_climate:latest |
-| helloworld | ghcr.io/fhem/fhempy-docker_helloworld:1.8.0,ghcr.io/fhem/fhempy-docker_helloworld:1,ghcr.io/fhem/fhempy-docker_helloworld:latest |
-| homekit | ghcr.io/fhem/fhempy-docker_homekit:1.8.0,ghcr.io/fhem/fhempy-docker_homekit:1,ghcr.io/fhem/fhempy-docker_homekit:latest |
-| huawei_modbus | ghcr.io/fhem/fhempy-docker_huawei_modbus:1.8.0,ghcr.io/fhem/fhempy-docker_huawei_modbus:1,ghcr.io/fhem/fhempy-docker_huawei_modbus:latest |
-| ikos | ghcr.io/fhem/fhempy-docker_ikos:1.8.0,ghcr.io/fhem/fhempy-docker_ikos:1,ghcr.io/fhem/fhempy-docker_ikos:latest |
-| kia_hyundai | ghcr.io/fhem/fhempy-docker_kia_hyundai:1.8.0,ghcr.io/fhem/fhempy-docker_kia_hyundai:1,ghcr.io/fhem/fhempy-docker_kia_hyundai:latest |
-| meross | ghcr.io/fhem/fhempy-docker_meross:1.8.0,ghcr.io/fhem/fhempy-docker_meross:1,ghcr.io/fhem/fhempy-docker_meross:latest |
-| miflora | ghcr.io/fhem/fhempy-docker_miflora:1.8.0,ghcr.io/fhem/fhempy-docker_miflora:1,ghcr.io/fhem/fhempy-docker_miflora:latest |
-| miio | ghcr.io/fhem/fhempy-docker_miio:1.8.0,ghcr.io/fhem/fhempy-docker_miio:1,ghcr.io/fhem/fhempy-docker_miio:latest |
-| miscale | ghcr.io/fhem/fhempy-docker_miscale:1.8.0,ghcr.io/fhem/fhempy-docker_miscale:1,ghcr.io/fhem/fhempy-docker_miscale:latest |
-| mitemp2 | ghcr.io/fhem/fhempy-docker_mitemp2:1.8.0,ghcr.io/fhem/fhempy-docker_mitemp2:1,ghcr.io/fhem/fhempy-docker_mitemp2:latest |
-| mitemp | ghcr.io/fhem/fhempy-docker_mitemp:1.8.0,ghcr.io/fhem/fhempy-docker_mitemp:1,ghcr.io/fhem/fhempy-docker_mitemp:latest |
-| mqtt_ha_discovery | ghcr.io/fhem/fhempy-docker_mqtt_ha_discovery:1.8.0,ghcr.io/fhem/fhempy-docker_mqtt_ha_discovery:1,ghcr.io/fhem/fhempy-docker_mqtt_ha_discovery:latest |
-| nefit | ghcr.io/fhem/fhempy-docker_nefit:1.8.0,ghcr.io/fhem/fhempy-docker_nefit:1,ghcr.io/fhem/fhempy-docker_nefit:latest |
-| nespresso_ble | ghcr.io/fhem/fhempy-docker_nespresso_ble:1.8.0,ghcr.io/fhem/fhempy-docker_nespresso_ble:1,ghcr.io/fhem/fhempy-docker_nespresso_ble:latest |
-| piclock | ghcr.io/fhem/fhempy-docker_piclock:1.8.0,ghcr.io/fhem/fhempy-docker_piclock:1,ghcr.io/fhem/fhempy-docker_piclock:latest |
-| prusalink | ghcr.io/fhem/fhempy-docker_prusalink:1.8.0,ghcr.io/fhem/fhempy-docker_prusalink:1,ghcr.io/fhem/fhempy-docker_prusalink:latest |
-| pyit600 | ghcr.io/fhem/fhempy-docker_pyit600:1.8.0,ghcr.io/fhem/fhempy-docker_pyit600:1,ghcr.io/fhem/fhempy-docker_pyit600:latest |
-| rct_power | ghcr.io/fhem/fhempy-docker_rct_power:1.8.0,ghcr.io/fhem/fhempy-docker_rct_power:1,ghcr.io/fhem/fhempy-docker_rct_power:latest |
-| ring | ghcr.io/fhem/fhempy-docker_ring:1.8.0,ghcr.io/fhem/fhempy-docker_ring:1,ghcr.io/fhem/fhempy-docker_ring:latest |
-| seatconnect | ghcr.io/fhem/fhempy-docker_seatconnect:1.8.0,ghcr.io/fhem/fhempy-docker_seatconnect:1,ghcr.io/fhem/fhempy-docker_seatconnect:latest |
-| skodaconnect | ghcr.io/fhem/fhempy-docker_skodaconnect:1.8.0,ghcr.io/fhem/fhempy-docker_skodaconnect:1,ghcr.io/fhem/fhempy-docker_skodaconnect:latest |
-| spotify | ghcr.io/fhem/fhempy-docker_spotify:1.8.0,ghcr.io/fhem/fhempy-docker_spotify:1,ghcr.io/fhem/fhempy-docker_spotify:latest |
-| tibber | ghcr.io/fhem/fhempy-docker_tibber:1.8.0,ghcr.io/fhem/fhempy-docker_tibber:1,ghcr.io/fhem/fhempy-docker_tibber:latest |
-| tuya_cloud | ghcr.io/fhem/fhempy-docker_tuya_cloud:1.8.0,ghcr.io/fhem/fhempy-docker_tuya_cloud:1,ghcr.io/fhem/fhempy-docker_tuya_cloud:latest |
-| tuya | ghcr.io/fhem/fhempy-docker_tuya:1.8.0,ghcr.io/fhem/fhempy-docker_tuya:1,ghcr.io/fhem/fhempy-docker_tuya:latest |
-| tuya_smartlife | ghcr.io/fhem/fhempy-docker_tuya_smartlife:1.8.0,ghcr.io/fhem/fhempy-docker_tuya_smartlife:1,ghcr.io/fhem/fhempy-docker_tuya_smartlife:latest |
-| volvo | ghcr.io/fhem/fhempy-docker_volvo:1.8.0,ghcr.io/fhem/fhempy-docker_volvo:1,ghcr.io/fhem/fhempy-docker_volvo:latest |
-| volvo_software_update | ghcr.io/fhem/fhempy-docker_volvo_software_update:1.8.0,ghcr.io/fhem/fhempy-docker_volvo_software_update:1,ghcr.io/fhem/fhempy-docker_volvo_software_update:latest |
-| warema | ghcr.io/fhem/fhempy-docker_warema:1.8.0,ghcr.io/fhem/fhempy-docker_warema:1,ghcr.io/fhem/fhempy-docker_warema:latest |
-| websitetests | ghcr.io/fhem/fhempy-docker_websitetests:1.8.0,ghcr.io/fhem/fhempy-docker_websitetests:1,ghcr.io/fhem/fhempy-docker_websitetests:latest |
-| wienerlinien | ghcr.io/fhem/fhempy-docker_wienerlinien:1.8.0,ghcr.io/fhem/fhempy-docker_wienerlinien:1,ghcr.io/fhem/fhempy-docker_wienerlinien:latest |
-| wienernetze_smartmeter | ghcr.io/fhem/fhempy-docker_wienernetze_smartmeter:1.8.0,ghcr.io/fhem/fhempy-docker_wienernetze_smartmeter:1,ghcr.io/fhem/fhempy-docker_wienernetze_smartmeter:latest |
-| xiaomi_gateway3_device | ghcr.io/fhem/fhempy-docker_xiaomi_gateway3_device:1.8.0,ghcr.io/fhem/fhempy-docker_xiaomi_gateway3_device:1,ghcr.io/fhem/fhempy-docker_xiaomi_gateway3_device:latest |
-| xiaomi_gateway3 | ghcr.io/fhem/fhempy-docker_xiaomi_gateway3:1.8.0,ghcr.io/fhem/fhempy-docker_xiaomi_gateway3:1,ghcr.io/fhem/fhempy-docker_xiaomi_gateway3:latest |
-| xiaomi_tokens | ghcr.io/fhem/fhempy-docker_xiaomi_tokens:1.8.0,ghcr.io/fhem/fhempy-docker_xiaomi_tokens:1,ghcr.io/fhem/fhempy-docker_xiaomi_tokens:latest |
-| zappi | ghcr.io/fhem/fhempy-docker_zappi:1.8.0,ghcr.io/fhem/fhempy-docker_zappi:1,ghcr.io/fhem/fhempy-docker_zappi:latest |
-| zigbee2mqtt | ghcr.io/fhem/fhempy-docker_zigbee2mqtt:1.8.0,ghcr.io/fhem/fhempy-docker_zigbee2mqtt:1,ghcr.io/fhem/fhempy-docker_zigbee2mqtt:latest |
+| aktionsfinder | ghcr.io/fhem/fhempy-docker_aktionsfinder:2.0.1,ghcr.io/fhem/fhempy-docker_aktionsfinder:2,ghcr.io/fhem/fhempy-docker_aktionsfinder:v2.0.1,ghcr.io/fhem/fhempy-docker_aktionsfinder:latest |
+| alphaesscloud | ghcr.io/fhem/fhempy-docker_alphaesscloud:2.0.1,ghcr.io/fhem/fhempy-docker_alphaesscloud:2,ghcr.io/fhem/fhempy-docker_alphaesscloud:v2.0.1,ghcr.io/fhem/fhempy-docker_alphaesscloud:latest |
+| arp_presence | ghcr.io/fhem/fhempy-docker_arp_presence:2.0.1,ghcr.io/fhem/fhempy-docker_arp_presence:2,ghcr.io/fhem/fhempy-docker_arp_presence:v2.0.1,ghcr.io/fhem/fhempy-docker_arp_presence:latest |
+| ble_monitor | ghcr.io/fhem/fhempy-docker_ble_monitor:2.0.1,ghcr.io/fhem/fhempy-docker_ble_monitor:2,ghcr.io/fhem/fhempy-docker_ble_monitor:v2.0.1,ghcr.io/fhem/fhempy-docker_ble_monitor:latest |
+| ble_presence | ghcr.io/fhem/fhempy-docker_ble_presence:2.0.1,ghcr.io/fhem/fhempy-docker_ble_presence:2,ghcr.io/fhem/fhempy-docker_ble_presence:v2.0.1,ghcr.io/fhem/fhempy-docker_ble_presence:latest |
+| ble_reset | ghcr.io/fhem/fhempy-docker_ble_reset:2.0.1,ghcr.io/fhem/fhempy-docker_ble_reset:2,ghcr.io/fhem/fhempy-docker_ble_reset:v2.0.1,ghcr.io/fhem/fhempy-docker_ble_reset:latest |
+| blue_connect | ghcr.io/fhem/fhempy-docker_blue_connect:2.0.1,ghcr.io/fhem/fhempy-docker_blue_connect:2,ghcr.io/fhem/fhempy-docker_blue_connect:v2.0.1,ghcr.io/fhem/fhempy-docker_blue_connect:latest |
+| bt_presence | ghcr.io/fhem/fhempy-docker_bt_presence:2.0.1,ghcr.io/fhem/fhempy-docker_bt_presence:2,ghcr.io/fhem/fhempy-docker_bt_presence:v2.0.1,ghcr.io/fhem/fhempy-docker_bt_presence:latest |
+| ddnssde | ghcr.io/fhem/fhempy-docker_ddnssde:2.0.1,ghcr.io/fhem/fhempy-docker_ddnssde:2,ghcr.io/fhem/fhempy-docker_ddnssde:v2.0.1,ghcr.io/fhem/fhempy-docker_ddnssde:latest |
+| discover_ble | ghcr.io/fhem/fhempy-docker_discover_ble:2.0.1,ghcr.io/fhem/fhempy-docker_discover_ble:2,ghcr.io/fhem/fhempy-docker_discover_ble:v2.0.1,ghcr.io/fhem/fhempy-docker_discover_ble:latest |
+| discover_mdns | ghcr.io/fhem/fhempy-docker_discover_mdns:2.0.1,ghcr.io/fhem/fhempy-docker_discover_mdns:2,ghcr.io/fhem/fhempy-docker_discover_mdns:v2.0.1,ghcr.io/fhem/fhempy-docker_discover_mdns:latest |
+| discover_upnp | ghcr.io/fhem/fhempy-docker_discover_upnp:2.0.1,ghcr.io/fhem/fhempy-docker_discover_upnp:2,ghcr.io/fhem/fhempy-docker_discover_upnp:v2.0.1,ghcr.io/fhem/fhempy-docker_discover_upnp:latest |
+| dlna_dmr | ghcr.io/fhem/fhempy-docker_dlna_dmr:2.0.1,ghcr.io/fhem/fhempy-docker_dlna_dmr:2,ghcr.io/fhem/fhempy-docker_dlna_dmr:v2.0.1,ghcr.io/fhem/fhempy-docker_dlna_dmr:latest |
+| energie_gv_at | ghcr.io/fhem/fhempy-docker_energie_gv_at:2.0.1,ghcr.io/fhem/fhempy-docker_energie_gv_at:2,ghcr.io/fhem/fhempy-docker_energie_gv_at:v2.0.1,ghcr.io/fhem/fhempy-docker_energie_gv_at:latest |
+| eq3bt | ghcr.io/fhem/fhempy-docker_eq3bt:2.0.1,ghcr.io/fhem/fhempy-docker_eq3bt:2,ghcr.io/fhem/fhempy-docker_eq3bt:v2.0.1,ghcr.io/fhem/fhempy-docker_eq3bt:latest |
+| erelax_vaillant | ghcr.io/fhem/fhempy-docker_erelax_vaillant:2.0.1,ghcr.io/fhem/fhempy-docker_erelax_vaillant:2,ghcr.io/fhem/fhempy-docker_erelax_vaillant:v2.0.1,ghcr.io/fhem/fhempy-docker_erelax_vaillant:latest |
+| esphome | ghcr.io/fhem/fhempy-docker_esphome:2.0.1,ghcr.io/fhem/fhempy-docker_esphome:2,ghcr.io/fhem/fhempy-docker_esphome:v2.0.1,ghcr.io/fhem/fhempy-docker_esphome:latest |
+| fhem_forum | ghcr.io/fhem/fhempy-docker_fhem_forum:2.0.1,ghcr.io/fhem/fhempy-docker_fhem_forum:2,ghcr.io/fhem/fhempy-docker_fhem_forum:v2.0.1,ghcr.io/fhem/fhempy-docker_fhem_forum:latest |
+| fusionsolar | ghcr.io/fhem/fhempy-docker_fusionsolar:2.0.1,ghcr.io/fhem/fhempy-docker_fusionsolar:2,ghcr.io/fhem/fhempy-docker_fusionsolar:v2.0.1,ghcr.io/fhem/fhempy-docker_fusionsolar:latest |
+| geizhals | ghcr.io/fhem/fhempy-docker_geizhals:2.0.1,ghcr.io/fhem/fhempy-docker_geizhals:2,ghcr.io/fhem/fhempy-docker_geizhals:v2.0.1,ghcr.io/fhem/fhempy-docker_geizhals:latest |
+| gfprobt | ghcr.io/fhem/fhempy-docker_gfprobt:2.0.1,ghcr.io/fhem/fhempy-docker_gfprobt:2,ghcr.io/fhem/fhempy-docker_gfprobt:v2.0.1,ghcr.io/fhem/fhempy-docker_gfprobt:latest |
+| github_backup | ghcr.io/fhem/fhempy-docker_github_backup:2.0.1,ghcr.io/fhem/fhempy-docker_github_backup:2,ghcr.io/fhem/fhempy-docker_github_backup:v2.0.1,ghcr.io/fhem/fhempy-docker_github_backup:latest |
+| github_restore | ghcr.io/fhem/fhempy-docker_github_restore:2.0.1,ghcr.io/fhem/fhempy-docker_github_restore:2,ghcr.io/fhem/fhempy-docker_github_restore:v2.0.1,ghcr.io/fhem/fhempy-docker_github_restore:latest |
+| goodwe | ghcr.io/fhem/fhempy-docker_goodwe:2.0.1,ghcr.io/fhem/fhempy-docker_goodwe:2,ghcr.io/fhem/fhempy-docker_goodwe:v2.0.1,ghcr.io/fhem/fhempy-docker_goodwe:latest |
+| google_weather | ghcr.io/fhem/fhempy-docker_google_weather:2.0.1,ghcr.io/fhem/fhempy-docker_google_weather:2,ghcr.io/fhem/fhempy-docker_google_weather:v2.0.1,ghcr.io/fhem/fhempy-docker_google_weather:latest |
+| googlecast | ghcr.io/fhem/fhempy-docker_googlecast:2.0.1,ghcr.io/fhem/fhempy-docker_googlecast:2,ghcr.io/fhem/fhempy-docker_googlecast:v2.0.1,ghcr.io/fhem/fhempy-docker_googlecast:latest |
+| gree_climate | ghcr.io/fhem/fhempy-docker_gree_climate:2.0.1,ghcr.io/fhem/fhempy-docker_gree_climate:2,ghcr.io/fhem/fhempy-docker_gree_climate:v2.0.1,ghcr.io/fhem/fhempy-docker_gree_climate:latest |
+| helloworld | ghcr.io/fhem/fhempy-docker_helloworld:2.0.1,ghcr.io/fhem/fhempy-docker_helloworld:2,ghcr.io/fhem/fhempy-docker_helloworld:v2.0.1,ghcr.io/fhem/fhempy-docker_helloworld:latest |
+| homekit | ghcr.io/fhem/fhempy-docker_homekit:2.0.1,ghcr.io/fhem/fhempy-docker_homekit:2,ghcr.io/fhem/fhempy-docker_homekit:v2.0.1,ghcr.io/fhem/fhempy-docker_homekit:latest |
+| huawei_modbus | ghcr.io/fhem/fhempy-docker_huawei_modbus:2.0.1,ghcr.io/fhem/fhempy-docker_huawei_modbus:2,ghcr.io/fhem/fhempy-docker_huawei_modbus:v2.0.1,ghcr.io/fhem/fhempy-docker_huawei_modbus:latest |
+| ikos | ghcr.io/fhem/fhempy-docker_ikos:2.0.1,ghcr.io/fhem/fhempy-docker_ikos:2,ghcr.io/fhem/fhempy-docker_ikos:v2.0.1,ghcr.io/fhem/fhempy-docker_ikos:latest |
+| kia_hyundai | ghcr.io/fhem/fhempy-docker_kia_hyundai:2.0.1,ghcr.io/fhem/fhempy-docker_kia_hyundai:2,ghcr.io/fhem/fhempy-docker_kia_hyundai:v2.0.1,ghcr.io/fhem/fhempy-docker_kia_hyundai:latest |
+| meross | ghcr.io/fhem/fhempy-docker_meross:2.0.1,ghcr.io/fhem/fhempy-docker_meross:2,ghcr.io/fhem/fhempy-docker_meross:v2.0.1,ghcr.io/fhem/fhempy-docker_meross:latest |
+| miflora | ghcr.io/fhem/fhempy-docker_miflora:2.0.1,ghcr.io/fhem/fhempy-docker_miflora:2,ghcr.io/fhem/fhempy-docker_miflora:v2.0.1,ghcr.io/fhem/fhempy-docker_miflora:latest |
+| miio | ghcr.io/fhem/fhempy-docker_miio:2.0.1,ghcr.io/fhem/fhempy-docker_miio:2,ghcr.io/fhem/fhempy-docker_miio:v2.0.1,ghcr.io/fhem/fhempy-docker_miio:latest |
+| miscale | ghcr.io/fhem/fhempy-docker_miscale:2.0.1,ghcr.io/fhem/fhempy-docker_miscale:2,ghcr.io/fhem/fhempy-docker_miscale:v2.0.1,ghcr.io/fhem/fhempy-docker_miscale:latest |
+| mitemp2 | ghcr.io/fhem/fhempy-docker_mitemp2:2.0.1,ghcr.io/fhem/fhempy-docker_mitemp2:2,ghcr.io/fhem/fhempy-docker_mitemp2:v2.0.1,ghcr.io/fhem/fhempy-docker_mitemp2:latest |
+| mitemp | ghcr.io/fhem/fhempy-docker_mitemp:2.0.1,ghcr.io/fhem/fhempy-docker_mitemp:2,ghcr.io/fhem/fhempy-docker_mitemp:v2.0.1,ghcr.io/fhem/fhempy-docker_mitemp:latest |
+| mqtt_ha_discovery | ghcr.io/fhem/fhempy-docker_mqtt_ha_discovery:2.0.1,ghcr.io/fhem/fhempy-docker_mqtt_ha_discovery:2,ghcr.io/fhem/fhempy-docker_mqtt_ha_discovery:v2.0.1,ghcr.io/fhem/fhempy-docker_mqtt_ha_discovery:latest |
+| nefit | ghcr.io/fhem/fhempy-docker_nefit:2.0.1,ghcr.io/fhem/fhempy-docker_nefit:2,ghcr.io/fhem/fhempy-docker_nefit:v2.0.1,ghcr.io/fhem/fhempy-docker_nefit:latest |
+| nespresso_ble | ghcr.io/fhem/fhempy-docker_nespresso_ble:2.0.1,ghcr.io/fhem/fhempy-docker_nespresso_ble:2,ghcr.io/fhem/fhempy-docker_nespresso_ble:v2.0.1,ghcr.io/fhem/fhempy-docker_nespresso_ble:latest |
+| openmeteo_weather | ghcr.io/fhem/fhempy-docker_openmeteo_weather:2.0.1,ghcr.io/fhem/fhempy-docker_openmeteo_weather:2,ghcr.io/fhem/fhempy-docker_openmeteo_weather:v2.0.1,ghcr.io/fhem/fhempy-docker_openmeteo_weather:latest |
+| piclock | ghcr.io/fhem/fhempy-docker_piclock:2.0.1,ghcr.io/fhem/fhempy-docker_piclock:2,ghcr.io/fhem/fhempy-docker_piclock:v2.0.1,ghcr.io/fhem/fhempy-docker_piclock:latest |
+| prusalink | ghcr.io/fhem/fhempy-docker_prusalink:2.0.1,ghcr.io/fhem/fhempy-docker_prusalink:2,ghcr.io/fhem/fhempy-docker_prusalink:v2.0.1,ghcr.io/fhem/fhempy-docker_prusalink:latest |
+| pyit600 | ghcr.io/fhem/fhempy-docker_pyit600:2.0.1,ghcr.io/fhem/fhempy-docker_pyit600:2,ghcr.io/fhem/fhempy-docker_pyit600:v2.0.1,ghcr.io/fhem/fhempy-docker_pyit600:latest |
+| rct_power | ghcr.io/fhem/fhempy-docker_rct_power:2.0.1,ghcr.io/fhem/fhempy-docker_rct_power:2,ghcr.io/fhem/fhempy-docker_rct_power:v2.0.1,ghcr.io/fhem/fhempy-docker_rct_power:latest |
+| ring | ghcr.io/fhem/fhempy-docker_ring:2.0.1,ghcr.io/fhem/fhempy-docker_ring:2,ghcr.io/fhem/fhempy-docker_ring:v2.0.1,ghcr.io/fhem/fhempy-docker_ring:latest |
+| seatconnect | ghcr.io/fhem/fhempy-docker_seatconnect:2.0.1,ghcr.io/fhem/fhempy-docker_seatconnect:2,ghcr.io/fhem/fhempy-docker_seatconnect:v2.0.1,ghcr.io/fhem/fhempy-docker_seatconnect:latest |
+| skodaconnect | ghcr.io/fhem/fhempy-docker_skodaconnect:2.0.1,ghcr.io/fhem/fhempy-docker_skodaconnect:2,ghcr.io/fhem/fhempy-docker_skodaconnect:v2.0.1,ghcr.io/fhem/fhempy-docker_skodaconnect:latest |
+| spotify | ghcr.io/fhem/fhempy-docker_spotify:2.0.1,ghcr.io/fhem/fhempy-docker_spotify:2,ghcr.io/fhem/fhempy-docker_spotify:v2.0.1,ghcr.io/fhem/fhempy-docker_spotify:latest |
+| tibber | ghcr.io/fhem/fhempy-docker_tibber:2.0.1,ghcr.io/fhem/fhempy-docker_tibber:2,ghcr.io/fhem/fhempy-docker_tibber:v2.0.1,ghcr.io/fhem/fhempy-docker_tibber:latest |
+| tuya_cloud | ghcr.io/fhem/fhempy-docker_tuya_cloud:2.0.1,ghcr.io/fhem/fhempy-docker_tuya_cloud:2,ghcr.io/fhem/fhempy-docker_tuya_cloud:v2.0.1,ghcr.io/fhem/fhempy-docker_tuya_cloud:latest |
+| tuya | ghcr.io/fhem/fhempy-docker_tuya:2.0.1,ghcr.io/fhem/fhempy-docker_tuya:2,ghcr.io/fhem/fhempy-docker_tuya:v2.0.1,ghcr.io/fhem/fhempy-docker_tuya:latest |
+| tuya_smartlife | ghcr.io/fhem/fhempy-docker_tuya_smartlife:2.0.1,ghcr.io/fhem/fhempy-docker_tuya_smartlife:2,ghcr.io/fhem/fhempy-docker_tuya_smartlife:v2.0.1,ghcr.io/fhem/fhempy-docker_tuya_smartlife:latest |
+| volvo | ghcr.io/fhem/fhempy-docker_volvo:2.0.1,ghcr.io/fhem/fhempy-docker_volvo:2,ghcr.io/fhem/fhempy-docker_volvo:v2.0.1,ghcr.io/fhem/fhempy-docker_volvo:latest |
+| volvo_software_update | ghcr.io/fhem/fhempy-docker_volvo_software_update:2.0.1,ghcr.io/fhem/fhempy-docker_volvo_software_update:2,ghcr.io/fhem/fhempy-docker_volvo_software_update:v2.0.1,ghcr.io/fhem/fhempy-docker_volvo_software_update:latest |
+| warema | ghcr.io/fhem/fhempy-docker_warema:2.0.1,ghcr.io/fhem/fhempy-docker_warema:2,ghcr.io/fhem/fhempy-docker_warema:v2.0.1,ghcr.io/fhem/fhempy-docker_warema:latest |
+| websitetests | ghcr.io/fhem/fhempy-docker_websitetests:2.0.1,ghcr.io/fhem/fhempy-docker_websitetests:2,ghcr.io/fhem/fhempy-docker_websitetests:v2.0.1,ghcr.io/fhem/fhempy-docker_websitetests:latest |
+| wienerlinien | ghcr.io/fhem/fhempy-docker_wienerlinien:2.0.1,ghcr.io/fhem/fhempy-docker_wienerlinien:2,ghcr.io/fhem/fhempy-docker_wienerlinien:v2.0.1,ghcr.io/fhem/fhempy-docker_wienerlinien:latest |
+| wienernetze_smartmeter | ghcr.io/fhem/fhempy-docker_wienernetze_smartmeter:2.0.1,ghcr.io/fhem/fhempy-docker_wienernetze_smartmeter:2,ghcr.io/fhem/fhempy-docker_wienernetze_smartmeter:v2.0.1,ghcr.io/fhem/fhempy-docker_wienernetze_smartmeter:latest |
+| xiaomi_gateway3_device | ghcr.io/fhem/fhempy-docker_xiaomi_gateway3_device:2.0.1,ghcr.io/fhem/fhempy-docker_xiaomi_gateway3_device:2,ghcr.io/fhem/fhempy-docker_xiaomi_gateway3_device:v2.0.1,ghcr.io/fhem/fhempy-docker_xiaomi_gateway3_device:latest |
+| xiaomi_gateway3 | ghcr.io/fhem/fhempy-docker_xiaomi_gateway3:2.0.1,ghcr.io/fhem/fhempy-docker_xiaomi_gateway3:2,ghcr.io/fhem/fhempy-docker_xiaomi_gateway3:v2.0.1,ghcr.io/fhem/fhempy-docker_xiaomi_gateway3:latest |
+| xiaomi_tokens | ghcr.io/fhem/fhempy-docker_xiaomi_tokens:2.0.1,ghcr.io/fhem/fhempy-docker_xiaomi_tokens:2,ghcr.io/fhem/fhempy-docker_xiaomi_tokens:v2.0.1,ghcr.io/fhem/fhempy-docker_xiaomi_tokens:latest |
+| zappi | ghcr.io/fhem/fhempy-docker_zappi:2.0.1,ghcr.io/fhem/fhempy-docker_zappi:2,ghcr.io/fhem/fhempy-docker_zappi:v2.0.1,ghcr.io/fhem/fhempy-docker_zappi:latest |
+| zigbee2mqtt | ghcr.io/fhem/fhempy-docker_zigbee2mqtt:2.0.1,ghcr.io/fhem/fhempy-docker_zigbee2mqtt:2,ghcr.io/fhem/fhempy-docker_zigbee2mqtt:v2.0.1,ghcr.io/fhem/fhempy-docker_zigbee2mqtt:latest |
