@@ -489,6 +489,11 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
+        with:
+          # git credentials persisted by checkout take precedence over the token
+          # in the remote URL used by push-protected; use the bot token (member of
+          # the team allowed to push to main) instead of GITHUB_TOKEN
+          token: ${{ github.event_name == 'release' && secrets.BOT_PUSH_TOKEN || github.token }}
       
       - uses: actions/download-artifact@v8
         if: ${{ !startsWith(github.ref, 'refs/heads/push-action') }}
@@ -545,7 +550,7 @@ jobs:
         uses: CasperWA/push-protected@v2
         if: ${{ github.event_name == 'release' }}
         with:
-          token: ${{ secrets.BOT_PUSH_TOKEN }}
+          token: ${{ github.event_name == 'release' && secrets.BOT_PUSH_TOKEN || github.token }}
           branch: main
           pre_sleep: 60
           timeout: 60
