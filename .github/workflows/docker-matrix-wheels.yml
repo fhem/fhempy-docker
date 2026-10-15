@@ -550,7 +550,7 @@ jobs:
         uses: CasperWA/push-protected@v2
         if: ${{ github.event_name == 'release' }}
         with:
-          token: ${{ github.event_name == 'release' && secrets.BOT_PUSH_TOKEN || github.token }}
+          token: ${{ secrets.BOT_PUSH_TOKEN }}
           branch: main
           pre_sleep: 60
           timeout: 60
