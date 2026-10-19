@@ -8,6 +8,7 @@
   "packageRules": [
     {
       "matchPackageNames": ["fhempy"],
+      "matchUpdateTypes": ["patch"],
       "automerge": true
     },
     {
