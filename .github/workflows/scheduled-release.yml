@@ -28,7 +28,12 @@ jobs:
       contents: read
       pull-requests: read
       checks: read
+      actions: read
       issues: write
+    defaults:
+      run:
+        # bash -eo pipefail, a failing command in a pipe must fail the step
+        shell: bash
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
@@ -45,7 +50,8 @@ jobs:
           MAJOR_COMMITS_FILE: ${{ runner.temp }}/major_commits.md
         run: ./scripts/release-check.sh HEAD
 
-      # check-matrix only succeeds if all other jobs of the build succeeded
+      # Only the newest build of the commit on main counts (push or schedule, re-runs included).
+      # check-matrix only succeeds if all other jobs of the build succeeded.
       - name: Check build status of main
         id: ci
         if: steps.check.outputs.release == 'true'
@@ -53,18 +59,26 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           SHA: ${{ steps.check.outputs.sha }}
         run: |
-          states=$(gh api "repos/${GITHUB_REPOSITORY}/commits/${SHA}/check-runs?check_name=check-matrix&filter=all" \
-            --jq '.check_runs[] | "\(.status)/\(.conclusion)"')
-          echo "check-matrix runs for ${SHA}:"
-          echo "${states}"
-          if grep -qx 'completed/success' <<< "${states}"; then
+          run=$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/docker-matrix-wheels.yml/runs?head_sha=${SHA}&branch=main&per_page=100" \
+            --jq '[.workflow_runs[] | select(.event != "pull_request")] | sort_by(.created_at) | last // empty | "\(.check_suite_id) \(.status) \(.html_url)"')
+          if [ -z "${run}" ]; then
+            state=""
+          else
+            read -r suite status url <<< "${run}"
+            echo "Newest build of ${SHA} on main: ${url} (${status})"
+            # a re-run creates a new check run in the same check suite, the newest one counts
+            state=$(gh api "repos/${GITHUB_REPOSITORY}/commits/${SHA}/check-runs?check_name=check-matrix&filter=all&per_page=100" \
+              --jq "[.check_runs[] | select(.check_suite.id == ${suite})] | sort_by(.id) | last // empty | \"\(.status)/\(.conclusion)\"")
+            echo "check-matrix: ${state:-none}"
+          fi
+          if [ "${state}" == "completed/success" ]; then
             echo "ok=true" >> "$GITHUB_OUTPUT"
-          elif [ -z "${states}" ] || grep -qv '^completed/' <<< "${states}"; then
-            echo "::notice::Build of ${SHA} is not finished yet, no release this week"
+          elif [ -z "${run}" ] || [ "${status}" != "completed" ]; then
+            echo "::notice::Build of ${SHA} on main is not finished yet, no release this week"
             echo "Build of main is not finished yet, no release this week" >> "$GITHUB_STEP_SUMMARY"
             echo "ok=false" >> "$GITHUB_OUTPUT"
           else
-            echo "::error::Build of ${SHA} failed (check-matrix not successful), no release"
+            echo "::error::Build of ${SHA} on main failed (check-matrix: ${state:-none}), no release: ${url}"
             exit 1
           fi
 
