@@ -21,7 +21,12 @@
       "matchPackageNames": ["python"],
       "matchUpdateTypes": ["pin", "digest"],
       "automerge": true
+    },
+    {
+      "description": "Major updates of the image content block the scheduled patch release (scripts/release-check.sh)",
+      "matchManagers": ["dockerfile", "pip_requirements"],
+      "matchUpdateTypes": ["major"],
+      "addLabels": ["major-update"]
     }
-    
   ]
 }

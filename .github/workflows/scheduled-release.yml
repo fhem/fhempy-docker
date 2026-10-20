@@ -1,0 +1,127 @@
+name: Scheduled patch release
+
+# Once a week a new patch release (vX.Y.Z+1) is created, if there are changes on main
+# since the last release tag and the build of main is green (check-matrix in docker-matrix-wheels.yml).
+# The release triggers the image build in docker-matrix-wheels.yml.
+# Major updates block the scheduled release, an issue is opened instead. The release has to be
+# created manually with a new major or minor version (see scripts/release-check.sh).
+
+on:
+  schedule:
+    - cron: '30 3 * * 1'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Only check, do not create a release or an issue'
+        type: boolean
+        default: true
+
+concurrency:
+  group: scheduled-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    if: github.repository == 'fhem/fhempy-docker'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+      checks: read
+      actions: read
+      issues: write
+    defaults:
+      run:
+        # bash -eo pipefail, a failing command in a pipe must fail the step
+        shell: bash
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          ref: main
+          # full history and tags are needed to find the last release
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Check for unreleased changes
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+          MAJOR_COMMITS_FILE: ${{ runner.temp }}/major_commits.md
+        run: ./scripts/release-check.sh HEAD
+
+      # Only the newest build of the commit on main counts (push or schedule, re-runs included).
+      # check-matrix only succeeds if all other jobs of the build succeeded.
+      - name: Check build status of main
+        id: ci
+        if: steps.check.outputs.release == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ steps.check.outputs.sha }}
+        run: |
+          run=$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/docker-matrix-wheels.yml/runs?head_sha=${SHA}&branch=main&per_page=100" \
+            --jq '[.workflow_runs[] | select(.event != "pull_request")] | sort_by(.created_at) | last // empty | "\(.check_suite_id) \(.status) \(.html_url)"')
+          if [ -z "${run}" ]; then
+            state=""
+          else
+            read -r suite status url <<< "${run}"
+            echo "Newest build of ${SHA} on main: ${url} (${status})"
+            # a re-run creates a new check run in the same check suite, the newest one counts
+            state=$(gh api "repos/${GITHUB_REPOSITORY}/commits/${SHA}/check-runs?check_name=check-matrix&filter=all&per_page=100" \
+              --jq "[.check_runs[] | select(.check_suite.id == ${suite})] | sort_by(.id) | last // empty | \"\(.status)/\(.conclusion)\"")
+            echo "check-matrix: ${state:-none}"
+          fi
+          if [ "${state}" == "completed/success" ]; then
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          elif [ -z "${run}" ] || [ "${status}" != "completed" ]; then
+            echo "::notice::Build of ${SHA} on main is not finished yet, no release this week"
+            echo "Build of main is not finished yet, no release this week" >> "$GITHUB_STEP_SUMMARY"
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "::error::Build of ${SHA} on main failed (check-matrix: ${state:-none}), no release: ${url}"
+            exit 1
+          fi
+
+      - name: Create release
+        if: steps.ci.outputs.ok == 'true' && !(github.event_name == 'workflow_dispatch' && inputs.dry_run)
+        env:
+          # a release created with GITHUB_TOKEN does not trigger the release workflow,
+          # so the bot token is used here
+          GH_TOKEN: ${{ secrets.BOT_PUSH_TOKEN }}
+          TAG: ${{ steps.check.outputs.next_tag }}
+          TARGET: ${{ steps.check.outputs.sha }}
+        run: |
+          [ -n "${GH_TOKEN}" ] || { echo "::error::Secret BOT_PUSH_TOKEN is not available"; exit 1; }
+          gh release create "${TAG}" --target "${TARGET}" --title "Version ${TAG#v}" --generate-notes
+          echo "Release [${TAG}](${{ github.server_url }}/${{ github.repository }}/releases/tag/${TAG}) created" >> "$GITHUB_STEP_SUMMARY"
+
+      # one open issue per blocking, it is updated by the following runs and closed manually
+      - name: Open or update issue for blocked release
+        if: steps.check.outputs.major == 'true' && !(github.event_name == 'workflow_dispatch' && inputs.dry_run)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          LAST_TAG: ${{ steps.check.outputs.last_tag }}
+          MAJOR_COMMITS_FILE: ${{ runner.temp }}/major_commits.md
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          TITLE: Scheduled release blocked by major update
+        run: |
+          {
+            echo "The weekly patch release is blocked, because there are major updates since ${LAST_TAG}:"
+            echo
+            cat "${MAJOR_COMMITS_FILE}"
+            echo
+            echo "Please create a release with a new major or minor version manually (stable tag \`vX.Y.Z\` on main)."
+            echo "Afterwards the weekly patch releases continue."
+            echo
+            echo "**This issue is not closed automatically, please close it after the release.**"
+            echo
+            echo "Last check: ${RUN_URL}"
+          } > "${RUNNER_TEMP}/issue.md"
+          number=$(gh issue list --state open --search "in:title ${TITLE}" --json number,title \
+            | jq -r --arg title "${TITLE}" '[.[] | select(.title == $title)][0].number // empty')
+          if [ -n "${number}" ]; then
+            gh issue edit "${number}" --body-file "${RUNNER_TEMP}/issue.md"
+          else
+            number=$(gh issue create --title "${TITLE}" --body-file "${RUNNER_TEMP}/issue.md" | grep -oE '[0-9]+$')
+          fi
+          echo "Issue [#${number}](${{ github.server_url }}/${{ github.repository }}/issues/${number}) opened/updated" >> "$GITHUB_STEP_SUMMARY"
