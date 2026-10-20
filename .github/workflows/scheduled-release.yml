@@ -1,0 +1,55 @@
+name: Scheduled patch release
+
+# Once a week a new patch release (vX.Y.Z+1) is created, if there are changes on main
+# since the last release tag. The release triggers the image build in docker-matrix-wheels.yml.
+# Major updates block the scheduled release, they have to be released manually
+# with a new major version (see scripts/release-check.sh).
+
+on:
+  schedule:
+    - cron: '30 3 * * 1'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Only check, do not create a release'
+        type: boolean
+        default: true
+
+concurrency:
+  group: scheduled-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    if: github.repository == 'fhem/fhempy-docker'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          ref: main
+          # full history and tags are needed to find the last release
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Check for unreleased changes
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: ./scripts/release-check.sh HEAD
+
+      - name: Create release
+        if: steps.check.outputs.release == 'true' && !(github.event_name == 'workflow_dispatch' && inputs.dry_run)
+        env:
+          # a release created with GITHUB_TOKEN does not trigger the release workflow,
+          # so the bot token is used here
+          GH_TOKEN: ${{ secrets.BOT_PUSH_TOKEN }}
+          TAG: ${{ steps.check.outputs.next_tag }}
+          TARGET: ${{ steps.check.outputs.sha }}
+        run: |
+          [ -n "${GH_TOKEN}" ] || { echo "::error::Secret BOT_PUSH_TOKEN is not available"; exit 1; }
+          gh release create "${TAG}" --target "${TARGET}" --title "Version ${TAG#v}" --generate-notes
+          echo "Release [${TAG}](${{ github.server_url }}/${{ github.repository }}/releases/tag/${TAG}) created" >> "$GITHUB_STEP_SUMMARY"
