@@ -6,7 +6,7 @@
 # A release is due if there are commits since the last release tag (vX.Y.Z,
 # reachable from ref). The README update commits of the release workflow are
 # ignored. If one of the commits is a major update, no patch release is made,
-# the next release has to be created manually with a new major version.
+# the next release has to be created manually with a new major or minor version.
 #
 # A commit counts as major update if
 #   - its pull request has the label $MAJOR_LABEL (Renovate sets it, see renovate.json)
@@ -19,6 +19,7 @@
 #
 # Results are printed as key=value and appended to $GITHUB_OUTPUT if set:
 #   last_tag, next_tag, sha, commits, major, release, reason
+# If MAJOR_COMMITS_FILE is set, the major updates are written to it as markdown list.
 
 set -euo pipefail
 
@@ -97,7 +98,7 @@ if [ "$commits" -eq 0 ]; then
   out major false
   out release false
 elif [ "${#major_commits[@]}" -gt 0 ]; then
-  reason="Major update since ${last_tag}, a patch release is not appropriate. Please create the release manually with a new major version."
+  reason="Major update since ${last_tag}, a patch release is not appropriate. Please create the release manually with a new major or minor version."
   echo "::warning::${reason}"
   out major true
   out release false
@@ -124,4 +125,7 @@ if [ "${#major_commits[@]}" -gt 0 ]; then
   for line in "${major_commits[@]}"; do
     summary "- ${line}"
   done
+  if [ -n "${MAJOR_COMMITS_FILE:-}" ]; then
+    printf -- '- %s\n' "${major_commits[@]}" > "$MAJOR_COMMITS_FILE"
+  fi
 fi
