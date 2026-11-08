@@ -7,6 +7,11 @@
   ],
   "packageRules": [
     {
+      "description": "Patch updates are merged automatically (specific rules below override this)",
+      "matchUpdateTypes": ["patch"],
+      "automerge": true
+    },
+    {
       "matchPackageNames": ["fhempy"],
       "matchUpdateTypes": ["patch"],
       "automerge": true
