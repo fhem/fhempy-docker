@@ -557,6 +557,7 @@ jobs:
           cp README.md "${RUNNER_TEMP}/README.md"
           git fetch --depth=1 origin main
           git checkout -f -B main FETCH_HEAD
+          git branch --set-upstream-to=origin/main main
           cp "${RUNNER_TEMP}/README.md" README.md
           git config --global user.email "action@github.com"
           git config --local user.name "GitHub Action"
