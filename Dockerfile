@@ -2,7 +2,7 @@
 
 
 # Building wheels for later useage
-FROM python:3.13.18-trixie@sha256:36089e96a6c4805708c2ce6c075c360a99da0a0501680b3bc43360127457779d AS builder-base
+FROM python:3.13.18-trixie@sha256:f25cbd3f7c73c28bdcab476c93c93a2ec90970a8f5b8a7810533654207822390 AS builder-base
 
     
 RUN <<eot
